@@ -1,61 +1,23 @@
--- Migration para sistema de monitoramento de segurança
--- Cria tabelas para rastrear atividades suspeitas e bloqueios de usuários
-
--- Tabela de atividades suspeitas
-CREATE TABLE IF NOT EXISTS suspicious_activities (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    activity_type VARCHAR(50) NOT NULL,
-    endpoint VARCHAR(500) NOT NULL,
-    ip_address VARCHAR(45),
-    user_agent TEXT,
-    request_count INTEGER DEFAULT 1,
-    details JSONB,
-    severity VARCHAR(20) NOT NULL DEFAULT 'LOW',
+CREATE TABLE refresh_tokens (
+    id UUID PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    user_email VARCHAR(255) NOT NULL,
+    device_id VARCHAR(255) NOT NULL,
+    jti VARCHAR(255) NOT NULL UNIQUE,
+    family_id UUID NOT NULL,
+    token_hash VARCHAR(255) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NOT NULL,
-    
-    CONSTRAINT chk_activity_type CHECK (activity_type IN (
-        'RATE_LIMIT_EXCEEDED',
-        'MASS_CREATION',
-        'PATTERN_ABUSE',
-        'INVALID_DATA_ATTEMPTS',
-        'UNAUTHORIZED_ACCESS',
-        'SUSPICIOUS_PATTERN',
-        'AUTOMATED_BEHAVIOR'
-    )),
-    CONSTRAINT chk_severity CHECK (severity IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL'))
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    used_at TIMESTAMP,
+    rotated_from UUID,
+    revoked_at TIMESTAMP,
+    user_agent VARCHAR(500),
+    ip_address VARCHAR(45),
+    CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Índices para otimização de queries
-CREATE INDEX idx_suspicious_activities_user_id ON suspicious_activities(user_id);
-CREATE INDEX idx_suspicious_activities_created_at ON suspicious_activities(created_at);
-CREATE INDEX idx_suspicious_activities_severity ON suspicious_activities(severity);
-CREATE INDEX idx_suspicious_activities_user_created ON suspicious_activities(user_id, created_at);
-CREATE INDEX idx_suspicious_activities_type_severity ON suspicious_activities(activity_type, severity);
-
--- Tabela de bloqueios de segurança
-CREATE TABLE IF NOT EXISTS user_security_blocks (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    reason VARCHAR(500) NOT NULL,
-    suspicious_activity_count INTEGER NOT NULL DEFAULT 0,
-    blocked_at TIMESTAMP NOT NULL,
-    blocked_until TIMESTAMP,
-    unblocked_at TIMESTAMP,
-    unblocked_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
-    notes TEXT
-);
-
--- Índice parcial único para garantir apenas um bloqueio ativo por usuário
-CREATE UNIQUE INDEX idx_unique_active_block ON user_security_blocks(user_id) WHERE unblocked_at IS NULL;
-
--- Índices para bloqueios
-CREATE INDEX idx_user_security_blocks_user_id ON user_security_blocks(user_id);
-CREATE INDEX idx_user_security_blocks_blocked_at ON user_security_blocks(blocked_at);
-CREATE INDEX idx_user_security_blocks_active ON user_security_blocks(user_id) 
-    WHERE unblocked_at IS NULL;
-
--- Comentários para documentação
-COMMENT ON TABLE suspicious_activities IS 'Registra atividades suspeitas de usuários para análise e bloqueio automático';
-COMMENT ON TABLE user_security_blocks IS 'Registra bloqueios de segurança temporários ou permanentes';
-COMMENT ON COLUMN user_security_blocks.blocked_until IS 'NULL indica bloqueio permanente, caso contrário é temporário';
+CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX idx_refresh_tokens_jti ON refresh_tokens(jti);
+CREATE INDEX idx_refresh_tokens_family_id ON refresh_tokens(family_id);
+CREATE INDEX idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);

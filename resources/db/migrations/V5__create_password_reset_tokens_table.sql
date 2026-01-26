@@ -1,4 +1,4 @@
-/-- Password Reset Tokens Table
+-- Password Reset Tokens Table
 -- V5: Create password_reset_tokens table for password recovery flow
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
