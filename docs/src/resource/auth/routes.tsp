@@ -39,7 +39,7 @@ interface AuthOperations {
   @post
   @route("/logout")
   @summary("Logout")
-  logout(): {
+  logout(@header Authorization?: string): {
     @statusCode statusCode: 200;
     @body body: LogoutResponse;
   } | {
@@ -51,7 +51,7 @@ interface AuthOperations {
   @post
   @route("/logout-all")
   @summary("Logout from all sessions")
-  logoutAll(@header Authorization: string): {
+  logoutAll(@header Authorization?: string): {
     @statusCode statusCode: 200;
     @body body: LogoutResponse;
   } | {

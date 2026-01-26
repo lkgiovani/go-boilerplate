@@ -45,7 +45,7 @@ interface AuthenticatedUserOperations {
   @get
   @route("/me")
   @summary("Get current user")
-  getCurrentUser(@header Authorization: string): {
+  getCurrentUser(@header Authorization?: string): {
     @statusCode statusCode: 200;
     @body body: UserResponse;
   } | {
@@ -58,7 +58,7 @@ interface AuthenticatedUserOperations {
   @route("/")
   @summary("Update user")
   updateUser(
-    @header Authorization: string,
+    @header Authorization?: string,
     @body request: UpdateUserRequest
   ): {
     @statusCode statusCode: 200;
@@ -73,7 +73,7 @@ interface AuthenticatedUserOperations {
   @route("/password")
   @summary("Update password")
   updatePassword(
-    @header Authorization: string,
+    @header Authorization?: string,
     @body request: UpdatePasswordRequest
   ): {
     @statusCode statusCode: 200;
@@ -88,7 +88,7 @@ interface AuthenticatedUserOperations {
   @route("/add-image")
   @summary("Add user image")
   addImage(
-    @header Authorization: string,
+    @header Authorization?: string,
     @body request: AddImageRequest
   ): {
     @statusCode statusCode: 200;
@@ -108,7 +108,7 @@ interface AdminUserOperations {
   @route("/")
   @summary("Create user (admin)")
   saveUser(
-    @header Authorization: string,
+    @header Authorization?: string,
     @body request: CreateUserRequest
   ): {
     @statusCode statusCode: 201;
@@ -123,7 +123,7 @@ interface AdminUserOperations {
   @route("/")
   @summary("List all users (admin)")
   findAllUsers(
-    @header Authorization: string,
+    @header Authorization?: string,
     @query page?: int32,
     @query limit?: int32
   ): {
@@ -139,7 +139,7 @@ interface AdminUserOperations {
   @route("/{id}")
   @summary("Get user by ID (admin)")
   findUserByID(
-    @header Authorization: string,
+    @header Authorization?: string,
     @path id: string
   ): {
     @statusCode statusCode: 200;
@@ -154,7 +154,7 @@ interface AdminUserOperations {
   @route("/email/{email}")
   @summary("Get user by email (admin)")
   findUserByEmail(
-    @header Authorization: string,
+    @header Authorization?: string,
     @path email: string
   ): {
     @statusCode statusCode: 200;
@@ -169,7 +169,7 @@ interface AdminUserOperations {
   @route("/{id}")
   @summary("Update user (admin)")
   updateUserAdmin(
-    @header Authorization: string,
+    @header Authorization?: string,
     @path id: string,
     @body request: UpdateUserAdminRequest
   ): {
@@ -185,7 +185,7 @@ interface AdminUserOperations {
   @route("/{id}")
   @summary("Delete user (admin)")
   deleteUserByID(
-    @header Authorization: string,
+    @header Authorization?: string,
     @path id: string
   ): {
     @statusCode statusCode: 200;
@@ -200,7 +200,7 @@ interface AdminUserOperations {
   @route("/")
   @summary("Delete users (admin)")
   deleteUsersByIDs(
-    @header Authorization: string,
+    @header Authorization?: string,
     @body request: DeleteUsersByIDsRequest
   ): {
     @statusCode statusCode: 200;
@@ -215,7 +215,7 @@ interface AdminUserOperations {
   @route("/{userId}/status")
   @summary("Toggle user status (admin)")
   toggleUserStatus(
-    @header Authorization: string,
+    @header Authorization?: string,
     @path userId: string,
     @body request: ToggleUserStatusRequest
   ): {
@@ -231,7 +231,7 @@ interface AdminUserOperations {
   @route("/{id}/password")
   @summary("Update user password (admin)")
   updatePasswordAdmin(
-    @header Authorization: string,
+    @header Authorization?: string,
     @path id: string,
     @body request: UpdatePasswordAdminRequest
   ): {
@@ -247,7 +247,7 @@ interface AdminUserOperations {
   @route("/{id}/access-mode")
   @summary("Update access mode (admin)")
   updateAccessMode(
-    @header Authorization: string,
+    @header Authorization?: string,
     @path id: string,
     @body request: UpdateAccessModeRequest
   ): {
@@ -263,7 +263,7 @@ interface AdminUserOperations {
   @route("/{id}/features")
   @summary("Update features (admin)")
   updateFeatures(
-    @header Authorization: string,
+    @header Authorization?: string,
     @path id: string,
     @body request: UpdateFeaturesRequest
   ): {
@@ -279,7 +279,7 @@ interface AdminUserOperations {
   @route("/{id}/limits")
   @summary("Update limits (admin)")
   updateLimits(
-    @header Authorization: string,
+    @header Authorization?: string,
     @path id: string,
     @body request: UpdateLimitsRequest
   ): {
@@ -295,7 +295,7 @@ interface AdminUserOperations {
   @route("/{id}/lifetime-pro")
   @summary("Grant lifetime pro (admin)")
   grantLifetimePro(
-    @header Authorization: string,
+    @header Authorization?: string,
     @path id: string
   ): {
     @statusCode statusCode: 200;
@@ -310,7 +310,7 @@ interface AdminUserOperations {
   @route("/{id}/ensure-metadata")
   @summary("Ensure metadata (admin)")
   ensureMetadata(
-    @header Authorization: string,
+    @header Authorization?: string,
     @path id: string
   ): {
     @statusCode statusCode: 200;
@@ -325,7 +325,7 @@ interface AdminUserOperations {
   @route("/{id}/lifetime-pro")
   @summary("Revoke lifetime pro (admin)")
   revokeLifetimePro(
-    @header Authorization: string,
+    @header Authorization?: string,
     @path id: string
   ): {
     @statusCode statusCode: 200;
