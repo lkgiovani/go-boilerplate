@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -16,7 +17,8 @@ import (
 )
 
 const (
-	CookieName = "token"
+	AccessTokenCookieName  = "access_token"
+	RefreshTokenCookieName = "refresh_token"
 )
 
 type CustomClaims struct {
@@ -24,6 +26,8 @@ type CustomClaims struct {
 	Name  string   `json:"name"`
 	Email string   `json:"email"`
 	Roles []string `json:"roles,omitempty"`
+	Jti   string   `json:"jti,omitempty"`
+	Type  string   `json:"type,omitempty"`
 	jwt.StandardClaims
 }
 
@@ -60,7 +64,7 @@ func NewJwtService(settings config.JWTConfig, userService *user.Service) (*JwtSe
 }
 
 func (s *JwtService) GetTokenFromCookie(r *http.Request) (string, error) {
-	cookie, err := r.Cookie(CookieName)
+	cookie, err := r.Cookie(AccessTokenCookieName)
 	if err != nil {
 		return "", err
 	}
@@ -76,9 +80,21 @@ func (s *JwtService) GetUserName(tokenString string) (string, error) {
 }
 
 func (s *JwtService) GenerateTokenFromUser(ctx context.Context, u *user.User) (string, error) {
+	token, _, err := s.GenerateAccessToken(u)
+	return token, err
+}
+
+func (s *JwtService) GenerateAccessToken(u *user.User) (string, *CustomClaims, error) {
+	return s.generateToken(u, s.tokenTTL, "access")
+}
+
+func (s *JwtService) GenerateRefreshToken(u *user.User) (string, *CustomClaims, error) {
+	return s.generateToken(u, s.tokenTTL*7, "refresh") // Refresh token lasts 7x longer (e.g., 7 days)
+}
+
+func (s *JwtService) generateToken(u *user.User, ttl int64, tokenType string) (string, *CustomClaims, error) {
 	now := time.Now().Unix()
 
-	// Set roles based on user's admin status
 	roles := []string{"USER"}
 	if u.Admin {
 		roles = append(roles, "ADMIN")
@@ -89,17 +105,23 @@ func (s *JwtService) GenerateTokenFromUser(ctx context.Context, u *user.User) (s
 		Name:  u.Name,
 		Email: u.Email,
 		Roles: roles,
+		Jti:   uuid.New().String(),
+		Type:  tokenType,
 		StandardClaims: jwt.StandardClaims{
 			Subject:   u.Email,
 			Issuer:    s.issuer,
 			Audience:  s.audience,
 			IssuedAt:  now,
-			ExpiresAt: now + s.tokenTTL,
+			ExpiresAt: now + ttl,
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.secretKey))
+	signed, err := token.SignedString([]byte(s.secretKey))
+	if err != nil {
+		return "", nil, err
+	}
+	return signed, &claims, nil
 }
 
 func (s *JwtService) GenerateTokenFromEmail(email string) (string, error) {
@@ -140,45 +162,112 @@ func (s *JwtService) GenerateToken(ctx context.Context, id string) (string, erro
 	return token.SignedString([]byte(s.secretKey))
 }
 
+func (s *JwtService) GenerateCookies(u *user.User) (string, string, *CustomClaims, []*http.Cookie, error) {
+	accessToken, _, err := s.GenerateAccessToken(u)
+	if err != nil {
+		return "", "", nil, nil, err
+	}
+
+	refreshToken, refreshClaims, err := s.GenerateRefreshToken(u)
+	if err != nil {
+		return "", "", nil, nil, err
+	}
+
+	// Determinar se deve usar Secure baseado na presença de um domínio (ambiente real)
+	isSecure := s.cookieDomain != ""
+
+	cookies := []*http.Cookie{
+		{
+			Name:     AccessTokenCookieName,
+			Value:    accessToken,
+			Path:     "/",
+			MaxAge:   int(s.tokenTTL),
+			Secure:   isSecure,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		},
+		{
+			Name:     RefreshTokenCookieName,
+			Value:    refreshToken,
+			Path:     "/v1/auth/refresh",
+			MaxAge:   int(s.tokenTTL * 7),
+			Secure:   isSecure,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		},
+	}
+
+	if s.cookieDomain != "" {
+		for _, c := range cookies {
+			c.Domain = s.cookieDomain
+		}
+	}
+
+	return accessToken, refreshToken, refreshClaims, cookies, nil
+}
+
 func (s *JwtService) GenerateCookie(u *user.User, r *http.Request) (*http.Cookie, error) {
-	tokenString, err := s.GenerateTokenFromUser(context.Background(), u)
+	_, _, _, cookies, err := s.GenerateCookies(u)
 	if err != nil {
 		return nil, err
 	}
-
-	cookie := &http.Cookie{
-		Name:     CookieName,
-		Value:    tokenString,
-		Path:     "/",
-		MaxAge:   216000,
-		Secure:   true,
-		HttpOnly: true,
-		SameSite: http.SameSiteNoneMode,
-	}
-
-	if s.cookieDomain != "" {
-		cookie.Domain = s.cookieDomain
-	}
-
-	return cookie, nil
+	return cookies[0], nil
 }
 
-func (s *JwtService) CleanCookie() *http.Cookie {
-	cookie := &http.Cookie{
-		Name:     CookieName,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		Secure:   true,
-		HttpOnly: true,
-		SameSite: http.SameSiteNoneMode,
-	}
+func (s *JwtService) CleanCookies() []*http.Cookie {
+	names := []string{AccessTokenCookieName, RefreshTokenCookieName}
+	return s.CleanAll(names)
+}
 
+func (s *JwtService) CleanAll(cookieNames []string) []*http.Cookie {
+	cookies := make([]*http.Cookie, 0, len(cookieNames))
+	for _, name := range cookieNames {
+		if name == RefreshTokenCookieName {
+			// Clear specifically from where we set it
+			cookies = append(cookies, s.makeCleanCookie(name, "/v1/auth/refresh"))
+		} else {
+			// Clear others (access_token, etc) from root
+			cookies = append(cookies, s.makeCleanCookie(name, "/"))
+		}
+	}
+	return cookies
+}
+
+func (s *JwtService) makeCleanCookie(name, path string) *http.Cookie {
+	isSecure := s.cookieDomain != ""
+	cookie := &http.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     path,
+		MaxAge:   -1,
+		Secure:   isSecure,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
 	if s.cookieDomain != "" {
 		cookie.Domain = s.cookieDomain
 	}
-
 	return cookie
+}
+
+func (s *JwtService) CleanAllFromHeader(cookieHeader string) []*http.Cookie {
+	var names []string
+	if cookieHeader != "" {
+		cookies := strings.Split(cookieHeader, ";")
+		for _, cookie := range cookies {
+			parts := strings.SplitN(cookie, "=", 2)
+			if len(parts) > 0 {
+				name := strings.TrimSpace(parts[0])
+				if name != "" {
+					names = append(names, name)
+				}
+			}
+		}
+	}
+
+	// Always ensure known cookies are in the list
+	names = append(names, AccessTokenCookieName, RefreshTokenCookieName)
+	return s.CleanAll(names)
 }
 
 func (s *JwtService) ValidateToken(tokenString string) bool {
@@ -234,6 +323,10 @@ func (s *JwtService) ParseToken(tokenString string) (*CustomClaims, error) {
 
 func (s *JwtService) GetAccessTokenExpirationSeconds() int64 {
 	return s.tokenTTL
+}
+
+func (s *JwtService) GetRefreshTokenExpirationSeconds() int64 {
+	return s.tokenTTL * 7
 }
 
 func (s *JwtService) parseCustomClaims(tokenString string) (*CustomClaims, error) {

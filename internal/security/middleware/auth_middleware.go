@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -36,7 +37,7 @@ func (m *AuthMiddleware) Authenticate(c *fiber.Ctx) error {
 
 	// If no token in header, try to get from cookie (for web)
 	if token == "" {
-		token = c.Cookies(jwt.CookieName)
+		token = c.Cookies(jwt.AccessTokenCookieName)
 	}
 
 	// If still no token found, return unauthorized
@@ -51,7 +52,8 @@ func (m *AuthMiddleware) Authenticate(c *fiber.Ctx) error {
 	}
 
 	// Store user information in context for use in handlers
-	c.Locals("userID", claims.ID)
+	uid, _ := strconv.ParseInt(claims.ID, 10, 64)
+	c.Locals("userID", uid)
 	c.Locals("userEmail", claims.Email)
 	c.Locals("userName", claims.Name)
 	c.Locals("userRoles", claims.Roles)
