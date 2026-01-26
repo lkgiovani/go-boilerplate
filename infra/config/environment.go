@@ -30,9 +30,10 @@ type DatabaseConfig struct {
 }
 
 type ServerConfig struct {
-	Port     int
-	LogLevel string
-	Mode     string
+	Port           int
+	LogLevel       string
+	Mode           string
+	AllowedOrigins string
 }
 
 type JWTConfig struct {
@@ -87,10 +88,16 @@ func loadServerConfig() ServerConfig {
 		log.Fatalf("Failed to get APP_MODE from environment: %v", err)
 	}
 
+	allowedOrigins, _ := utils.GetString("ALLOWED_ORIGINS")
+	if allowedOrigins == "" {
+		allowedOrigins = ""
+	}
+
 	return ServerConfig{
-		Port:     port,
-		LogLevel: logLevel,
-		Mode:     mode,
+		Port:           port,
+		LogLevel:       logLevel,
+		Mode:           mode,
+		AllowedOrigins: allowedOrigins,
 	}
 }
 

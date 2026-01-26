@@ -13,6 +13,7 @@ var DomainModule = fx.Module(
 		user.NewUserRepository,
 		user.NewService,
 		user.NewInsertAdminUser,
+		auth.NewAuthRepository,
 		auth.NewService,
 		jwt.NewJwtService,
 	),
