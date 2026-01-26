@@ -9,6 +9,7 @@ import (
 	"github.com/lkgiovani/go-boilerplate/internal/domain/auth"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/user"
 	"github.com/lkgiovani/go-boilerplate/internal/errors"
+	"github.com/lkgiovani/go-boilerplate/internal/security/jwt"
 )
 
 // Login handles user authentication
@@ -29,26 +30,23 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 		Password: req.Password,
 	}
 
-	ctx := c.Context()
+	ctx := c.UserContext()
 	userEntity, err := h.AuthService.Login(ctx, &login)
 	if err != nil {
 		return h.ErrorHandler(c, err)
 	}
 
-	// Generate access token using JwtService
-	accessToken, err := h.JwtService.GenerateTokenFromUser(ctx, userEntity)
+	// Generate and set cookies (access and refresh)
+	accessToken, _, cookies, err := h.AuthService.CreateSession(ctx, userEntity, userAgent, ipAddress, deviceID)
 	if err != nil {
 		return h.ErrorHandler(c, err)
 	}
 
-	// Generate and set cookie using JwtService
-	httpCookie, err := h.JwtService.GenerateCookie(userEntity, convertFiberToHTTPRequest(c))
-	if err != nil {
-		return h.ErrorHandler(c, err)
+	for _, cookie := range cookies {
+		setHTTPCookieToFiber(c, cookie)
 	}
-	setHTTPCookieToFiber(c, httpCookie)
 
-	// Get token expiration time
+	// Get token expiration times
 	expiresIn := h.JwtService.GetAccessTokenExpirationSeconds()
 
 	response := dto.LoginResponseDTO{
@@ -69,35 +67,31 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 // Refresh handles access token refresh
 // POST /v1/auth/refresh
 func (h *Handler) Refresh(c *fiber.Ctx) error {
-	// Extract refresh token from cookie
-	refreshToken := c.Cookies("refresh_token")
+	// Get refresh token strictly from cookie
+	refreshToken := c.Cookies(jwt.RefreshTokenCookieName)
+
 	if refreshToken == "" {
-		return errors.Errorf(errors.EUNAUTHORIZED, "Refresh token not found")
+		return errors.Errorf(errors.EUNAUTHORIZED, "Refresh token not found in cookies")
 	}
 
 	userAgent := c.Get("User-Agent")
 	ipAddress := c.IP()
+	deviceID := extractDeviceID(c)
 
-	// TODO: Validate refresh token and generate new access token
-	// For now, we'll return a placeholder response
-	_ = userAgent
-	_ = ipAddress
-
-	// TODO: Implement refresh token validation and rotation
-	// This should:
-	// 1. Validate the refresh token from database
-	// 2. Check if it's expired or revoked
-	// 3. Generate new access token
-	// 4. Optionally rotate the refresh token
-	// newAccessToken, newRefreshToken, err := h.AuthService.RefreshToken(ctx, refreshToken, userAgent, ipAddress)
-
-	response := dto.RefreshResponseDTO{
-		AccessToken: "new_access_token_placeholder",
-		ExpiresIn:   h.JwtService.GetAccessTokenExpirationSeconds(),
+	ctx := c.UserContext()
+	newAccessToken, _, cookies, err := h.AuthService.RefreshToken(ctx, refreshToken, userAgent, ipAddress, deviceID)
+	if err != nil {
+		return h.ErrorHandler(c, err)
 	}
 
-	// TODO: Set new refresh token cookie if rotated
-	// addRefreshTokenCookie(c, newRefreshToken)
+	for _, cookie := range cookies {
+		setHTTPCookieToFiber(c, cookie)
+	}
+
+	response := dto.RefreshResponseDTO{
+		AccessToken: newAccessToken,
+		ExpiresIn:   int(h.JwtService.GetAccessTokenExpirationSeconds()),
+	}
 
 	return c.Status(fiber.StatusOK).JSON(response)
 }
@@ -105,22 +99,21 @@ func (h *Handler) Refresh(c *fiber.Ctx) error {
 // Logout handles user logout from current device
 // POST /v1/auth/logout
 func (h *Handler) Logout(c *fiber.Ctx) error {
-	// Extract refresh token from cookie
-	refreshToken := c.Cookies("refresh_token")
-	if refreshToken == "" {
-		return errors.Errorf(errors.EUNAUTHORIZED, "Refresh token not found")
+	// Extract refresh token strictly from cookie
+	refreshToken := c.Cookies(jwt.RefreshTokenCookieName)
+
+	// Revoke refresh token in database
+	ctx := c.Context()
+	err := h.AuthService.RevokeRefreshToken(ctx, refreshToken)
+	if err != nil {
+		return h.ErrorHandler(c, err)
 	}
 
-	// TODO: Revoke refresh token in database
-	// ctx := c.Context()
-	// err := h.AuthService.RevokeRefreshToken(ctx, refreshToken)
-	// if err != nil {
-	//     return h.ErrorHandler(c, err)
-	// }
-
-	// Clear authentication cookie using JwtService
-	cleanCookie := h.JwtService.CleanCookie()
-	setHTTPCookieToFiber(c, cleanCookie)
+	// Thoroughly clear all cookies from the page
+	cookies := h.JwtService.CleanAllFromHeader(c.Get("Cookie"))
+	for _, cookie := range cookies {
+		setHTTPCookieToFiber(c, cookie)
+	}
 
 	return c.Status(fiber.StatusOK).JSON(dto.MessageResponse{
 		Message: "Logged out successfully",
@@ -136,25 +129,18 @@ func (h *Handler) LogoutAll(c *fiber.Ctx) error {
 		return errors.Errorf(errors.EUNAUTHORIZED, "User not authenticated")
 	}
 
-	// Extract current refresh token from cookie
-	refreshToken := c.Cookies("refresh_token")
+	// Extract current refresh token strictly from cookie
+	refreshToken := c.Cookies(jwt.RefreshTokenCookieName)
 
-	// TODO: Revoke all refresh tokens for this user
-	// ctx := c.Context()
-	// err = h.AuthService.RevokeAllRefreshTokens(ctx, userID, refreshToken)
-	// if err != nil {
-	//     return h.ErrorHandler(c, err)
-	// }
-
-	_ = userID
-	_ = refreshToken
-
-	// Clear authentication cookie using JwtService
-	cleanCookie := h.JwtService.CleanCookie()
-	setHTTPCookieToFiber(c, cleanCookie)
+	// Revoke all refresh tokens for this user except the current one
+	ctx := c.Context()
+	err := h.AuthService.RevokeAllRefreshTokens(ctx, userID, refreshToken)
+	if err != nil {
+		return h.ErrorHandler(c, err)
+	}
 
 	return c.Status(fiber.StatusOK).JSON(dto.MessageResponse{
-		Message: "Logged out from all devices",
+		Message: "Logged out from all other devices",
 	})
 }
 
@@ -212,18 +198,11 @@ func convertFiberToHTTPRequest(c *fiber.Ctx) *http.Request {
 
 // setHTTPCookieToFiber converts http.Cookie to fiber.Cookie and sets it
 func setHTTPCookieToFiber(c *fiber.Ctx, httpCookie *http.Cookie) {
-	fiberCookie := &fiber.Cookie{
-		Name:     httpCookie.Name,
-		Value:    httpCookie.Value,
-		Path:     httpCookie.Path,
-		Domain:   httpCookie.Domain,
-		MaxAge:   httpCookie.MaxAge,
-		Expires:  httpCookie.Expires,
-		Secure:   httpCookie.Secure,
-		HTTPOnly: httpCookie.HttpOnly,
-		SameSite: convertHTTPSameSiteToFiber(httpCookie.SameSite),
-	}
-	c.Cookie(fiberCookie)
+	// We use the standard cookie string to avoid Fiber's overwriting behavior
+	// which happens when using c.Cookie() for multiple cookies with the same name
+	// Using c.Response().Header.Add instead of c.Append because c.Append joins with commas
+	// and Set-Cookie headers should be separate.
+	c.Response().Header.Add("Set-Cookie", httpCookie.String())
 }
 
 // convertHTTPSameSiteToFiber converts http.SameSite to fiber SameSite

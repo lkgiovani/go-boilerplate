@@ -18,5 +18,5 @@ type LoginResponseDTO struct {
 
 type RefreshResponseDTO struct {
 	AccessToken string `json:"accessToken"`
-	ExpiresIn   int64  `json:"expiresIn"`
+	ExpiresIn   int    `json:"expiresIn"`
 }

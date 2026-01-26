@@ -239,6 +239,11 @@ func (h *Handler) DeleteUserByID(c *fiber.Ctx) error {
 		return errors.Errorf(errors.EBADREQUEST, "Invalid user ID")
 	}
 
+	currentUserID := c.Locals("userID").(int64)
+	if currentUserID == id {
+		return errors.Errorf(errors.EINVALID, "You cannot delete your own account")
+	}
+
 	if err := h.UserService.Repository.Delete(c.Context(), id); err != nil {
 		return h.ErrorHandler(c, err)
 	}
@@ -291,6 +296,11 @@ func (h *Handler) ToggleUserStatus(c *fiber.Ctx) error {
 
 	activeParam := c.Query("active")
 	active := activeParam == "true"
+
+	currentUserID := c.Locals("userID").(int64)
+	if currentUserID == userID && !active {
+		return errors.Errorf(errors.EINVALID, "You cannot deactivate your own account")
+	}
 
 	if err := h.UserService.Repository.ToggleStatus(c.Context(), userID, active); err != nil {
 		return h.ErrorHandler(c, err)
@@ -460,6 +470,11 @@ func (h *Handler) RevokeLifetimePro(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		return errors.Errorf(errors.EBADREQUEST, "Invalid user ID")
+	}
+
+	currentUserID := c.Locals("userID").(int64)
+	if currentUserID == id {
+		return errors.Errorf(errors.EINVALID, "You cannot revoke your own Lifetime Pro status")
 	}
 
 	updatedUser, err := h.UserService.Repository.RevokeLifetimePro(c.Context(), id)
