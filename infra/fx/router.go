@@ -59,6 +59,13 @@ func setupRoutes(
 	publicUsers.Post("/signup", handler.SignupUser)
 	publicUsers.Post("/resend-verification", handler.ResendVerification)
 
+	// Email Verification routes
+	emailVer := v1.Group("/email-verification")
+	emailVer.Post("/send", authMiddleware.Authenticate, handler.EmailVerificationHandler.SendVerificationEmail)
+	emailVer.Post("/verify", handler.EmailVerificationHandler.VerifyEmail)
+	emailVer.Get("/verify", handler.EmailVerificationHandler.VerifyEmailByQuery)
+	emailVer.Post("/resend", handler.EmailVerificationHandler.ResendVerificationEmail)
+
 	// User routes (require authentication)
 	users := v1.Group("/users")
 	users.Use(authMiddleware.Authenticate) // Apply authentication middleware to all user routes
