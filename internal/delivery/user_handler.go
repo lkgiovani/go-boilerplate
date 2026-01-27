@@ -24,10 +24,43 @@ func (m *UserMapper) ToResponseDTO(u *user.User) dto.UserResponseDTO {
 		Admin:      u.Admin,
 		Active:     u.Active,
 		Source:     u.Source,
-		Metadata:   u.Metadata,
+		Metadata:   m.ToMetadataDTO(u.Metadata),
 		LastAccess: u.LastAccess,
 		CreatedAt:  u.CreatedAt,
 		UpdatedAt:  u.UpdatedAt,
+	}
+}
+
+func (m *UserMapper) ToMetadataDTO(meta user.UserMetadata) dto.UserMetadataDTO {
+	var proSource *string
+	if meta.ProSource != nil {
+		s := string(*meta.ProSource)
+		proSource = &s
+	}
+
+	return dto.UserMetadataDTO{
+		AccessMode:              string(meta.AccessMode),
+		PlanType:                string(meta.PlanType),
+		PlanExpirationDate:      meta.PlanExpirationDate,
+		ProSource:               proSource,
+		MaxResources:            meta.MaxResources,
+		MaxRequestsPerMonth:     meta.MaxRequestsPerMonth,
+		MaxAccounts:             meta.MaxAccounts,
+		MaxCategoriesPerAccount: meta.MaxCategoriesPerAccount,
+		MaxTransactionsPerMonth: meta.MaxTransactionsPerMonth,
+		CanExportData:           meta.CanExportData,
+		CanUseReports:           meta.CanUseReports,
+		CanUseAdvancedFeatures:  meta.CanUseAdvancedFeatures,
+		CanCreateBudgets:        meta.CanCreateBudgets,
+		CanUseGoals:             meta.CanUseGoals,
+		EmailVerified:           meta.EmailVerified,
+		ReputationStatus:        string(meta.ReputationStatus),
+		SuspiciousActivityCount: meta.SuspiciousActivityCount,
+		LastSecurityCheck:       meta.LastSecurityCheck,
+		LastPermissionCheck:     meta.LastPermissionCheck,
+		Notes:                   meta.Notes,
+		Locale:                  meta.Locale,
+		Currency:                meta.Currency,
 	}
 }
 
@@ -60,11 +93,12 @@ func (h *Handler) SaveUser(c *fiber.Ctx) error {
 	}
 
 	newUser := &user.User{
-		Name:   req.Name,
-		Email:  req.Email,
-		Admin:  req.Admin != nil && *req.Admin,
-		Active: req.Active == nil || *req.Active,
-		Source: "LOCAL",
+		Name:     req.Name,
+		Email:    req.Email,
+		Admin:    req.Admin != nil && *req.Admin,
+		Active:   req.Active == nil || *req.Active,
+		Source:   "LOCAL",
+		Metadata: user.NewDefaultMetadata(),
 	}
 
 	if req.Password != nil {
@@ -90,16 +124,17 @@ func (h *Handler) SignupUser(c *fiber.Ctx) error {
 	}
 
 	newUser := &user.User{
-		Name:   req.Name,
-		Email:  req.Email,
-		Admin:  false,
-		Active: true,
-		Source: "LOCAL",
+		Name:     req.Name,
+		Email:    req.Email,
+		Admin:    false,
+		Active:   true,
+		Source:   "LOCAL",
+		Metadata: user.NewDefaultMetadata(),
 	}
 
 	newUser.Password = &req.Password
 
-	if err := h.UserService.Repository.Create(c.Context(), newUser); err != nil {
+	if err := h.AuthService.Register(c.Context(), newUser); err != nil {
 		return h.ErrorHandler(c, err)
 	}
 
@@ -111,6 +146,10 @@ func (h *Handler) ResendVerification(c *fiber.Ctx) error {
 	var req dto.ResendVerificationRequest
 	if err := c.BodyParser(&req); err != nil {
 		return errors.Errorf(errors.EBADREQUEST, "Invalid request body")
+	}
+
+	if err := h.EmailVerificationService.ResendVerification(c.UserContext(), req.Email); err != nil {
+		return h.ErrorHandler(c, err)
 	}
 
 	return c.Status(fiber.StatusOK).JSON(dto.MessageResponse{
@@ -132,7 +171,10 @@ func (h *Handler) UpdateUser(c *fiber.Ctx) error {
 	}
 
 	existingUser.Name = req.Name
-	existingUser.Email = req.Email
+	if existingUser.Email != req.Email {
+		existingUser.Email = req.Email
+		existingUser.Metadata.EmailVerified = false
+	}
 	if req.ImgURL != nil {
 		existingUser.ImgURL = req.ImgURL
 	}
@@ -333,7 +375,10 @@ func (h *Handler) UpdateUserAdmin(c *fiber.Ctx) error {
 	}
 
 	existingUser.Name = req.Name
-	existingUser.Email = req.Email
+	if existingUser.Email != req.Email {
+		existingUser.Email = req.Email
+		existingUser.Metadata.EmailVerified = false
+	}
 	if req.ImgURL != nil {
 		existingUser.ImgURL = req.ImgURL
 	}

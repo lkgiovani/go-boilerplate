@@ -39,7 +39,7 @@ type UploadImageRequestDTO struct {
 }
 
 type UserUpdateAccessModeDTO struct {
-	AccessMode string `json:"accessMode" validate:"required,oneof=FREE BASIC PRO LIFETIME_PRO"`
+	AccessMode string `json:"accessMode" validate:"required,oneof=READ_WRITE READ_ONLY DISABLED"`
 }
 
 type UserUpdateFeaturesDTO struct {
@@ -63,20 +63,45 @@ type ResendVerificationRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
+type UserMetadataDTO struct {
+	AccessMode              string     `json:"accessMode"`
+	PlanType                string     `json:"planType"`
+	PlanExpirationDate      *time.Time `json:"planExpirationDate,omitempty"`
+	ProSource               *string    `json:"proSource,omitempty"`
+	MaxResources            *int       `json:"maxResources,omitempty"`
+	MaxRequestsPerMonth     *int       `json:"maxRequestsPerMonth,omitempty"`
+	MaxAccounts             int        `json:"maxAccounts"`
+	MaxCategoriesPerAccount int        `json:"maxCategoriesPerAccount"`
+	MaxTransactionsPerMonth int        `json:"maxTransactionsPerMonth"`
+	CanExportData           bool       `json:"canExportData"`
+	CanUseReports           bool       `json:"canUseReports"`
+	CanUseAdvancedFeatures  bool       `json:"canUseAdvancedFeatures"`
+	CanCreateBudgets        bool       `json:"canCreateBudgets"`
+	CanUseGoals             bool       `json:"canUseGoals"`
+	EmailVerified           bool       `json:"emailVerified"`
+	ReputationStatus        string     `json:"reputationStatus"`
+	SuspiciousActivityCount int        `json:"suspiciousActivityCount"`
+	LastSecurityCheck       *time.Time `json:"lastSecurityCheck,omitempty"`
+	LastPermissionCheck     *time.Time `json:"lastPermissionCheck,omitempty"`
+	Notes                   *string    `json:"notes,omitempty"`
+	Locale                  string     `json:"locale"`
+	Currency                string     `json:"currency"`
+}
+
 // Response DTOs
 
 type UserResponseDTO struct {
-	ID         int64      `json:"id"`
-	Name       string     `json:"name"`
-	Email      string     `json:"email"`
-	ImgURL     *string    `json:"imgUrl,omitempty"`
-	Admin      bool       `json:"admin"`
-	Active     bool       `json:"active"`
-	Source     string     `json:"source"`
-	Metadata   *string    `json:"metadata,omitempty"`
-	LastAccess *time.Time `json:"lastAccess,omitempty"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updatedAt"`
+	ID         int64           `json:"id"`
+	Name       string          `json:"name"`
+	Email      string          `json:"email"`
+	ImgURL     *string         `json:"imgUrl,omitempty"`
+	Admin      bool            `json:"admin"`
+	Active     bool            `json:"active"`
+	Source     string          `json:"source"`
+	Metadata   UserMetadataDTO `json:"metadata"`
+	LastAccess *time.Time      `json:"lastAccess,omitempty"`
+	CreatedAt  time.Time       `json:"createdAt"`
+	UpdatedAt  time.Time       `json:"updatedAt"`
 }
 
 type UploadResponseDTO struct {

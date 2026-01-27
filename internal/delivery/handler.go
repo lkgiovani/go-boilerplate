@@ -3,28 +3,35 @@ package delivery
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/auth"
+	"github.com/lkgiovani/go-boilerplate/internal/domain/emailverification"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/user"
 	"github.com/lkgiovani/go-boilerplate/internal/security/jwt"
 )
 
 type Handler struct {
-	AuthService  *auth.Service
-	UserService  *user.Service
-	JwtService   *jwt.JwtService
-	ErrorHandler func(c *fiber.Ctx, err error) error
+	AuthService              *auth.Service
+	UserService              *user.Service
+	EmailVerificationService *emailverification.Service
+	EmailVerificationHandler *EmailVerificationHandler
+	JwtService               *jwt.JwtService
+	ErrorHandler             func(c *fiber.Ctx, err error) error
 }
 
 func NewHandler(
 	AuthService *auth.Service,
 	UserService *user.Service,
+	EmailVerificationService *emailverification.Service,
+	EmailVerificationHandler *EmailVerificationHandler,
 	JwtService *jwt.JwtService,
 	ErrorHandler func(c *fiber.Ctx, err error) error,
 ) *Handler {
 	return &Handler{
-		AuthService:  AuthService,
-		UserService:  UserService,
-		JwtService:   JwtService,
-		ErrorHandler: ErrorHandler,
+		AuthService:              AuthService,
+		UserService:              UserService,
+		EmailVerificationService: EmailVerificationService,
+		EmailVerificationHandler: EmailVerificationHandler,
+		JwtService:               JwtService,
+		ErrorHandler:             ErrorHandler,
 	}
 }
 

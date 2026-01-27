@@ -156,7 +156,7 @@ func (h *Handler) Signup(c *fiber.Ctx) error {
 		Name:   req.Name,
 		Email:  req.Email,
 		Admin:  false,
-		Active: true,
+		Active: false,
 		Source: "LOCAL",
 	}
 
