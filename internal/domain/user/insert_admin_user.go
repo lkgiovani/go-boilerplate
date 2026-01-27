@@ -53,12 +53,17 @@ func (i *InsertAdminUser) Execute(ctx context.Context) error {
 
 	now := time.Now()
 	user := &User{
-		Name:      "Administrator",
-		Email:     adminEmail,
-		Admin:     true,
-		Active:    true,
-		Password:  &hashedPassword,
-		Source:    "LOCAL",
+		Name:     "Administrator",
+		Email:    adminEmail,
+		Admin:    true,
+		Active:   true,
+		Password: &hashedPassword,
+		Source:   "LOCAL",
+		Metadata: func() UserMetadata {
+			m := NewDefaultMetadata()
+			m.EmailVerified = true
+			return m
+		}(),
 		CreatedAt: now,
 		UpdatedAt: now,
 	}

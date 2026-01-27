@@ -123,8 +123,10 @@ func (r *GormRepository) UpdateAccessMode(ctx context.Context, id int64, accessM
 		return nil, err
 	}
 
-	// TODO: Atualizar metadata JSON com accessMode
-	// Por enquanto, retorna o usuário
+	user.Metadata.AccessMode = AccessMode(accessMode)
+	if err := r.Update(ctx, user); err != nil {
+		return nil, err
+	}
 	return user, nil
 }
 
@@ -134,7 +136,22 @@ func (r *GormRepository) UpdateFeatures(ctx context.Context, id int64, canCreate
 		return nil, err
 	}
 
-	// TODO: Atualizar metadata JSON com features
+	if canCreateBudgets != nil {
+		user.Metadata.CanCreateBudgets = *canCreateBudgets
+	}
+	if canExportData != nil {
+		user.Metadata.CanExportData = *canExportData
+	}
+	if canUseReports != nil {
+		user.Metadata.CanUseReports = *canUseReports
+	}
+	if canUseGoals != nil {
+		user.Metadata.CanUseGoals = *canUseGoals
+	}
+
+	if err := r.Update(ctx, user); err != nil {
+		return nil, err
+	}
 	return user, nil
 }
 
@@ -144,7 +161,19 @@ func (r *GormRepository) UpdateLimits(ctx context.Context, id int64, maxAccounts
 		return nil, err
 	}
 
-	// TODO: Atualizar metadata JSON com limits
+	if maxAccounts != nil {
+		user.Metadata.MaxAccounts = *maxAccounts
+	}
+	if maxTransactionsPerMonth != nil {
+		user.Metadata.MaxTransactionsPerMonth = *maxTransactionsPerMonth
+	}
+	if maxCategoriesPerAccount != nil {
+		user.Metadata.MaxCategoriesPerAccount = *maxCategoriesPerAccount
+	}
+
+	if err := r.Update(ctx, user); err != nil {
+		return nil, err
+	}
 	return user, nil
 }
 
@@ -154,7 +183,15 @@ func (r *GormRepository) GrantLifetimePro(ctx context.Context, id int64, reason 
 		return nil, err
 	}
 
-	// TODO: Atualizar metadata JSON com lifetime pro
+	user.Metadata.PlanType = PlanTypePro
+	user.Metadata.Notes = &reason
+	// Para Lifetime Pro, podemos definir uma data muito distante ou deixar nulo
+	// Aqui vamos deixar nulo para representar "vitalício"
+	user.Metadata.PlanExpirationDate = nil
+
+	if err := r.Update(ctx, user); err != nil {
+		return nil, err
+	}
 	return user, nil
 }
 
@@ -164,7 +201,10 @@ func (r *GormRepository) RevokeLifetimePro(ctx context.Context, id int64) (*User
 		return nil, err
 	}
 
-	// TODO: Remover lifetime pro do metadata JSON
+	user.Metadata.PlanType = PlanTypeFree
+	if err := r.Update(ctx, user); err != nil {
+		return nil, err
+	}
 	return user, nil
 }
 
@@ -174,6 +214,13 @@ func (r *GormRepository) EnsureMetadata(ctx context.Context, id int64) (*User, e
 		return nil, err
 	}
 
-	// TODO: Garantir que metadata existe com valores padrão
+	// Se o campo Locale (que é obrigatório no default) estiver vazio, assumimos que precisa de inicialização
+	if user.Metadata.Locale == "" {
+		user.Metadata = NewDefaultMetadata()
+		if err := r.Update(ctx, user); err != nil {
+			return nil, err
+		}
+	}
+
 	return user, nil
 }
