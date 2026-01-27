@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lkgiovani/go-boilerplate/internal/domain/emailverification"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/user"
 	"github.com/lkgiovani/go-boilerplate/internal/errors"
 	"github.com/lkgiovani/go-boilerplate/internal/security/jwt"
@@ -17,10 +18,11 @@ import (
 )
 
 type Service struct {
-	UserRepo    user.UserService
-	UserService *user.Service
-	AuthRepo    Repository
-	JwtService  *jwt.JwtService
+	UserRepo                 user.UserService
+	UserService              *user.Service
+	AuthRepo                 Repository
+	JwtService               *jwt.JwtService
+	EmailVerificationService *emailverification.Service
 }
 
 func NewService(
@@ -28,12 +30,14 @@ func NewService(
 	userSvc *user.Service,
 	authRepo Repository,
 	jwtService *jwt.JwtService,
+	emailVerSvc *emailverification.Service,
 ) *Service {
 	return &Service{
-		UserRepo:    userRepo,
-		UserService: userSvc,
-		AuthRepo:    authRepo,
-		JwtService:  jwtService,
+		UserRepo:                 userRepo,
+		UserService:              userSvc,
+		AuthRepo:                 authRepo,
+		JwtService:               jwtService,
+		EmailVerificationService: emailVerSvc,
 	}
 }
 
@@ -49,6 +53,16 @@ func (s *Service) Login(ctx context.Context, login *Login) (*user.User, error) {
 
 	if err := encrypt.VerifyPassword(login.Password, *u.Password); err != nil {
 		return nil, errors.Errorf(errors.EUNAUTHORIZED, "invalid email or password")
+	}
+
+	// Admin users do not need email verification (or you can choose they do)
+	if !u.Admin {
+		if !u.Active {
+			return nil, errors.Errorf(errors.EUNAUTHORIZED, "Sua conta está inativa. Entre em contato com o suporte.")
+		}
+		if !u.Metadata.EmailVerified {
+			return nil, errors.Errorf(errors.EUNAUTHORIZED, "Email não verificado. Verifique seu email para acessar a conta.")
+		}
 	}
 
 	return u, nil
@@ -112,10 +126,19 @@ func (s *Service) RefreshToken(ctx context.Context, token, userAgent, ipAddress,
 		return "", "", nil, errors.Errorf(errors.EUNAUTHORIZED, "token already used")
 	}
 
-	// 3. Get user
 	u, err := s.UserRepo.GetByID(ctx, storedToken.UserID)
-	if err != nil {
+	if err != nil || u == nil {
 		return "", "", nil, errors.Errorf(errors.EUNAUTHORIZED, "user not found")
+	}
+
+	// Admin users do not need email verification
+	if !u.Admin {
+		if !u.Active {
+			return "", "", nil, errors.Errorf(errors.EUNAUTHORIZED, "Sua conta está inativa.")
+		}
+		if !u.Metadata.EmailVerified {
+			return "", "", nil, errors.Errorf(errors.EUNAUTHORIZED, "Email não verificado.")
+		}
 	}
 
 	// 4. Generate new tokens (rotation)
@@ -174,6 +197,13 @@ func (s *Service) Register(ctx context.Context, u *user.User) error {
 
 	if err := s.UserRepo.Create(ctx, u); err != nil {
 		return errors.Errorf(errors.EINTERNAL, "failed to create user")
+	}
+
+	// Trigger email verification
+	if _, err := s.EmailVerificationService.CreateAndSendVerificationToken(ctx, u); err != nil {
+		// Log error but don't fail registration
+		// You might want to handle this differently in production
+		return nil
 	}
 
 	return nil

@@ -19,6 +19,19 @@ type Config struct {
 	Server   ServerConfig
 	JWT      JWTConfig
 	Admin    AdminConfig
+	Email    EmailConfig
+}
+
+type EmailConfig struct {
+	Provider     string
+	FromEmail    string
+	FromName     string
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUser     string
+	SMTPPassword string
+	APIKey       string
+	FrontendURL  string
 }
 
 type DatabaseConfig struct {
@@ -189,6 +202,30 @@ func loadAdminConfig() AdminConfig {
 	}
 }
 
+func loadEmailConfig() EmailConfig {
+	provider, _ := utils.GetString("EMAIL_PROVIDER")
+	fromEmail, _ := utils.GetString("EMAIL_FROM")
+	fromName, _ := utils.GetString("EMAIL_FROM_NAME")
+	smtpHost, _ := utils.GetString("EMAIL_SMTP_HOST")
+	smtpPort, _ := utils.GetInt("EMAIL_SMTP_PORT")
+	smtpUser, _ := utils.GetString("EMAIL_SMTP_USER")
+	smtpPassword, _ := utils.GetString("EMAIL_SMTP_PASSWORD")
+	apiKey, _ := utils.GetString("EMAIL_API_KEY")
+	frontendURL, _ := utils.GetString("FRONTEND_URL")
+
+	return EmailConfig{
+		Provider:     provider,
+		FromEmail:    fromEmail,
+		FromName:     fromName,
+		SMTPHost:     smtpHost,
+		SMTPPort:     smtpPort,
+		SMTPUser:     smtpUser,
+		SMTPPassword: smtpPassword,
+		APIKey:       apiKey,
+		FrontendURL:  frontendURL,
+	}
+}
+
 func LoadConfig() *Config {
 	LoadEnvironment()
 	return &Config{
@@ -196,5 +233,6 @@ func LoadConfig() *Config {
 		Server:   loadServerConfig(),
 		JWT:      loadJWTConfig(),
 		Admin:    loadAdminConfig(),
+		Email:    loadEmailConfig(),
 	}
 }
