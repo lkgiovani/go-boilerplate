@@ -66,6 +66,13 @@ func setupRoutes(
 	emailVer.Get("/verify", handler.EmailVerificationHandler.VerifyEmailByQuery)
 	emailVer.Post("/resend", handler.EmailVerificationHandler.ResendVerificationEmail)
 
+	// Password Recovery routes
+	passRecovery := v1.Group("/password-recovery")
+	passRecovery.Post("/request", handler.PasswordRecoveryHandler.RequestPasswordRecovery)
+	passRecovery.Post("/verify", handler.PasswordRecoveryHandler.VerifyPasswordRecovery)
+	passRecovery.Get("/verify", handler.PasswordRecoveryHandler.VerifyPasswordRecoveryByQuery)
+	passRecovery.Post("/reset", handler.PasswordRecoveryHandler.ResetPassword)
+
 	// User routes (require authentication)
 	users := v1.Group("/users")
 	users.Use(authMiddleware.Authenticate) // Apply authentication middleware to all user routes
@@ -77,7 +84,6 @@ func setupRoutes(
 	users.Patch("/add-image", handler.AddImage)
 
 	// Admin routes (require admin role)
-	// Create a sub-group for admin routes with admin middleware
 	adminUsers := users.Group("")
 	adminUsers.Use(authMiddleware.RequireAdmin) // Apply admin authorization middleware
 
@@ -96,5 +102,4 @@ func setupRoutes(
 	adminUsers.Patch("/:id/lifetime-pro", handler.GrantLifetimePro)   // Grant lifetime pro (admin)
 	adminUsers.Post("/:id/ensure-metadata", handler.EnsureMetadata)   // Ensure metadata (admin)
 	adminUsers.Delete("/:id/lifetime-pro", handler.RevokeLifetimePro) // Revoke lifetime pro (admin)
-
 }

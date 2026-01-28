@@ -6,21 +6,21 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/lkgiovani/go-boilerplate/internal/delivery/dto"
-	ev "github.com/lkgiovani/go-boilerplate/internal/domain/emailverification"
+	"github.com/lkgiovani/go-boilerplate/internal/domain/emailverification"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/user"
 	"github.com/lkgiovani/go-boilerplate/internal/errors"
 )
 
 // EmailVerificationHandler handles email verification endpoints
 type EmailVerificationHandler struct {
-	service      *ev.Service
+	service      *emailverification.Service
 	userRepo     user.UserService
 	ErrorHandler func(c *fiber.Ctx, err error) error
 }
 
 // NewEmailVerificationHandler creates a new email verification handler
 func NewEmailVerificationHandler(
-	service *ev.Service,
+	service *emailverification.Service,
 	userRepo user.UserService,
 	errorHandler func(c *fiber.Ctx, err error) error,
 ) *EmailVerificationHandler {
