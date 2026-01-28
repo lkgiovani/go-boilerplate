@@ -36,3 +36,25 @@ model UserInfo {
 model LogoutResponse {
   message: string;
 }
+
+// Password Recovery Models
+model RequestPasswordRecoveryRequest {
+  email: string;
+}
+
+model VerifyPasswordRecoveryRequest {
+  token: string;
+}
+
+model ResetPasswordRequest {
+  token: string;
+  password: string;
+}
+
+model PasswordRecoveryResponse {
+  message: string;
+}
+
+model VerifyPasswordRecoveryResponse {
+  valid: boolean;
+}

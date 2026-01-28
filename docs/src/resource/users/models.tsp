@@ -90,3 +90,19 @@ model UsersListResponse {
   page: int32;
   limit: int32;
 }
+
+// Email Verification Models
+model VerifyEmailRequest {
+  token: string;
+}
+
+model ResendEmailVerificationRequest {
+  email: string;
+}
+
+model EmailVerificationResponse {
+  success: boolean;
+  message: string;
+  userId?: int64;
+  email?: string;
+}

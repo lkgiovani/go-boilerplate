@@ -71,3 +71,52 @@ interface AuthOperations {
     @body body: ErrorResponse;
   };
 }
+
+@tag("Password Recovery")
+@route("/v1/password-recovery")
+interface PasswordRecoveryOperations {
+  @doc("Request a password recovery link")
+  @post
+  @route("/request")
+  @summary("Request recovery")
+  requestRecovery(@body request: RequestPasswordRecoveryRequest): {
+    @statusCode statusCode: 200;
+    @body body: PasswordRecoveryResponse;
+  };
+
+  @doc("Verify recovery token (POST)")
+  @post
+  @route("/verify")
+  @summary("Verify token (POST)")
+  verifyToken(@body request: VerifyPasswordRecoveryRequest): {
+    @statusCode statusCode: 200;
+    @body body: VerifyPasswordRecoveryResponse;
+  } | {
+    @statusCode statusCode: 400;
+    @body body: ErrorResponse;
+  };
+
+  @doc("Verify recovery token (GET)")
+  @get
+  @route("/verify")
+  @summary("Verify token (GET)")
+  verifyTokenByQuery(@query token: string): {
+    @statusCode statusCode: 200;
+    @body body: VerifyPasswordRecoveryResponse;
+  } | {
+    @statusCode statusCode: 400;
+    @body body: ErrorResponse;
+  };
+
+  @doc("Reset password using token")
+  @post
+  @route("/reset")
+  @summary("Reset password")
+  resetPassword(@body request: ResetPasswordRequest): {
+    @statusCode statusCode: 200;
+    @body body: PasswordRecoveryResponse;
+  } | {
+    @statusCode statusCode: 400;
+    @body body: ErrorResponse;
+  };
+}

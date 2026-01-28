@@ -335,3 +335,56 @@ interface AdminUserOperations {
     @body body: ErrorResponse;
   };
 }
+
+// Email Verification Operations
+@tag("Email Verification")
+@route("/v1/email-verification")
+interface EmailVerificationOperations {
+  @doc("Send verification email to authenticated user")
+  @post
+  @route("/send")
+  @summary("Send verification email")
+  sendVerificationEmail(@header Authorization: string): {
+    @statusCode statusCode: 200;
+    @body body: EmailVerificationResponse;
+  } | {
+    @statusCode statusCode: 401;
+    @body body: ErrorResponse;
+  };
+
+  @doc("Verify email using token in body")
+  @post
+  @route("/verify")
+  @summary("Verify email (POST)")
+  verifyEmail(@body request: VerifyEmailRequest): {
+    @statusCode statusCode: 200;
+    @body body: EmailVerificationResponse;
+  } | {
+    @statusCode statusCode: 400;
+    @body body: ErrorResponse;
+  };
+
+  @doc("Verify email using token in query")
+  @get
+  @route("/verify")
+  @summary("Verify email (GET)")
+  verifyEmailByQuery(@query token: string): {
+    @statusCode statusCode: 200;
+    @body body: string; // Returns HTML
+  } | {
+    @statusCode statusCode: 400;
+    @body body: string; // Returns HTML
+  };
+
+  @doc("Resend verification email to specific address")
+  @post
+  @route("/resend")
+  @summary("Resend verification email")
+  resendVerificationEmail(@body request: ResendEmailVerificationRequest): {
+    @statusCode statusCode: 200;
+    @body body: EmailVerificationResponse;
+  } | {
+    @statusCode statusCode: 400;
+    @body body: ErrorResponse;
+  };
+}
