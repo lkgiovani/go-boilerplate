@@ -2,11 +2,11 @@ package user
 
 import (
 	"context"
-	"time"
 
 	"github.com/lkgiovani/go-boilerplate/infra/config"
 	"github.com/lkgiovani/go-boilerplate/pkg/encrypt"
 	"github.com/lkgiovani/go-boilerplate/pkg/logger"
+	"github.com/lkgiovani/go-boilerplate/pkg/utils"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -51,7 +51,7 @@ func (i *InsertAdminUser) Execute(ctx context.Context) error {
 		return err
 	}
 
-	now := time.Now()
+	now := utils.Now()
 	user := &User{
 		Name:     "Administrator",
 		Email:    adminEmail,

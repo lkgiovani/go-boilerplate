@@ -3,6 +3,7 @@ package emailverification
 import (
 	"context"
 
+	"github.com/lkgiovani/go-boilerplate/pkg/utils"
 	"gorm.io/gorm"
 )
 
@@ -68,7 +69,7 @@ func (r *GormRepository) MarkAllAsUsedByUserID(ctx context.Context, userID int64
 		Where("user_id = ? AND used = false", userID).
 		Updates(map[string]interface{}{
 			"used":        true,
-			"verified_at": gorm.Expr("NOW()"),
+			"verified_at": utils.Now(),
 		}).Error
 }
 
@@ -78,6 +79,6 @@ func (r *GormRepository) Save(ctx context.Context, token *EmailVerificationToken
 
 func (r *GormRepository) DeleteExpired(ctx context.Context) error {
 	return r.db.WithContext(ctx).
-		Where("expires_at < NOW() AND used = true").
+		Where("expires_at < ? AND used = true", utils.Now()).
 		Delete(&EmailVerificationToken{}).Error
 }

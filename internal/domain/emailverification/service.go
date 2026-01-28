@@ -11,6 +11,7 @@ import (
 	"github.com/lkgiovani/go-boilerplate/internal/domain/email"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/user"
 	"github.com/lkgiovani/go-boilerplate/internal/errors"
+	"github.com/lkgiovani/go-boilerplate/pkg/utils"
 )
 
 const (
@@ -65,7 +66,7 @@ func (s *Service) CreateAndSendVerificationToken(ctx context.Context, u *user.Us
 		UserID:    u.ID,
 		Email:     u.Email,
 		Token:     tokenCode,
-		ExpiresAt: time.Now().Add(TokenExpirationHours * time.Hour),
+		ExpiresAt: utils.Now().Add(TokenExpirationHours * time.Hour),
 		Used:      false,
 	}
 
@@ -106,13 +107,13 @@ func (s *Service) VerifyToken(ctx context.Context, tokenCode string) VerifyEmail
 		s.logger.Warn("Token already used", slog.Int64("tokenId", token.ID))
 
 		// Check if used more than 1 hour ago
-		if token.VerifiedAt != nil && token.VerifiedAt.Before(time.Now().Add(-1*time.Hour)) {
+		if token.VerifiedAt != nil && token.VerifiedAt.Before(utils.Now().Add(-1*time.Hour)) {
 			return NewFailureResult("Token expirado. Solicite um novo código")
 		}
 
 		// Check if user is already verified
-		u, err := s.userRepo.GetByID(ctx, token.UserID)
-		if err == nil && u.Metadata.EmailVerified {
+		u, errUser := s.userRepo.GetByID(ctx, token.UserID)
+		if errUser == nil && u.Metadata.EmailVerified {
 			return NewSuccessResult(token.UserID, token.Email, "Email já foi verificado anteriormente")
 		}
 
@@ -133,9 +134,9 @@ func (s *Service) VerifyToken(ctx context.Context, tokenCode string) VerifyEmail
 	}
 
 	// Update user as verified
-	u, err := s.userRepo.GetByID(ctx, token.UserID)
-	if err != nil {
-		s.logger.Error("Failed to find user", slog.Any("error", err))
+	u, errGet := s.userRepo.GetByID(ctx, token.UserID)
+	if errGet != nil {
+		s.logger.Error("Failed to find user", slog.Any("error", errGet))
 		return NewFailureResult("Usuário não encontrado")
 	}
 

@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/lkgiovani/go-boilerplate/infra/config"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/user"
+	"github.com/lkgiovani/go-boilerplate/pkg/utils"
 )
 
 const (
@@ -93,7 +93,7 @@ func (s *JwtService) GenerateRefreshToken(u *user.User) (string, *CustomClaims, 
 }
 
 func (s *JwtService) generateToken(u *user.User, ttl int64, tokenType string) (string, *CustomClaims, error) {
-	now := time.Now().Unix()
+	now := utils.Now().Unix()
 
 	roles := []string{"USER"}
 	if u.Admin {
@@ -125,7 +125,7 @@ func (s *JwtService) generateToken(u *user.User, ttl int64, tokenType string) (s
 }
 
 func (s *JwtService) GenerateTokenFromEmail(email string) (string, error) {
-	now := time.Now().Unix()
+	now := utils.Now().Unix()
 
 	claims := jwt.StandardClaims{
 		Subject:   email,
@@ -146,7 +146,7 @@ func (s *JwtService) GenerateToken(ctx context.Context, id string) (string, erro
 		return "", fmt.Errorf("invalid user ID: %w", err)
 	}
 
-	now := time.Now().Unix()
+	now := utils.Now().Unix()
 	claims := CustomClaims{
 		ID: userID.String(),
 		StandardClaims: jwt.StandardClaims{
@@ -277,7 +277,7 @@ func (s *JwtService) ValidateToken(tokenString string) bool {
 		return false
 	}
 
-	now := time.Now().Unix()
+	now := utils.Now().Unix()
 
 	if !claims.VerifyIssuer(s.issuer, true) {
 		log.Printf("Invalid JWT issuer: expected %s", s.issuer)
@@ -304,7 +304,7 @@ func (s *JwtService) ParseToken(tokenString string) (*CustomClaims, error) {
 		return nil, err
 	}
 
-	now := time.Now().Unix()
+	now := utils.Now().Unix()
 
 	if !claims.VerifyIssuer(s.issuer, true) {
 		return nil, fmt.Errorf("invalid issuer")

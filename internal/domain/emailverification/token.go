@@ -2,6 +2,8 @@ package emailverification
 
 import (
 	"time"
+
+	"github.com/lkgiovani/go-boilerplate/pkg/utils"
 )
 
 // EmailVerificationToken represents a token for email verification
@@ -24,12 +26,12 @@ func (EmailVerificationToken) TableName() string {
 
 // IsExpired checks if the token has expired
 func (e *EmailVerificationToken) IsExpired() bool {
-	return time.Now().After(e.ExpiresAt)
+	return utils.Now().Unix() > e.ExpiresAt.UTC().Unix()
 }
 
 // MarkAsUsed marks the token as used
 func (e *EmailVerificationToken) MarkAsUsed() {
-	now := time.Now()
+	now := utils.Now()
 	e.Used = true
 	e.VerifiedAt = &now
 }

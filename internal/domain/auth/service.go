@@ -3,10 +3,10 @@ package auth
 import (
 	"context"
 	"strings"
+	"time"
 	"unicode"
 
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/emailverification"
@@ -84,7 +84,7 @@ func (s *Service) CreateSession(ctx context.Context, u *user.User, userAgent, ip
 		FamilyID:  uuid.New(), // New family for new login
 		TokenHash: utils.HashToken(refreshToken),
 		ExpiresAt: time.Unix(refreshClaims.ExpiresAt, 0),
-		CreatedAt: time.Now(),
+		CreatedAt: utils.Now(),
 		UserAgent: userAgent,
 		IpAddress: ipAddress,
 	}
@@ -162,7 +162,7 @@ func (s *Service) RefreshToken(ctx context.Context, token, userAgent, ipAddress,
 		FamilyID:    storedToken.FamilyID, // Keep the same family
 		TokenHash:   utils.HashToken(refreshToken),
 		ExpiresAt:   time.Unix(refreshClaims.ExpiresAt, 0),
-		CreatedAt:   time.Now(),
+		CreatedAt:   utils.Now(),
 		RotatedFrom: &storedToken.ID,
 		UserAgent:   userAgent,
 		IpAddress:   ipAddress,
