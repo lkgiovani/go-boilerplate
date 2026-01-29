@@ -44,10 +44,15 @@ func provideEmailSender(cfg *config.Config, logger *slog.Logger) (email.EmailSen
 			User:     cfg.Email.SMTPUser,
 			Password: cfg.Email.SMTPPassword,
 		}
-	case email.ProviderSendGrid:
-		messagingConfig = email.SendGridConfig{APIKey: cfg.Email.APIKey}
 	case email.ProviderResend:
 		messagingConfig = email.ResendConfig{APIKey: cfg.Email.APIKey}
+	case email.ProviderSES:
+		messagingConfig = email.SESConfig{
+			AccessKeyID:     cfg.Email.SESAccessKey,
+			SecretAccessKey: cfg.Email.SESSecretKey,
+			Region:          cfg.Email.SESRegion,
+			Endpoint:        cfg.Email.SESEndpoint,
+		}
 	}
 
 	return email.NewEmailSender(

@@ -31,6 +31,10 @@ type EmailConfig struct {
 	SMTPUser     string
 	SMTPPassword string
 	APIKey       string
+	SESAccessKey string
+	SESSecretKey string
+	SESRegion    string
+	SESEndpoint  string
 	FrontendURL  string
 }
 
@@ -211,6 +215,10 @@ func loadEmailConfig() EmailConfig {
 	smtpUser, _ := utils.GetString("EMAIL_SMTP_USER")
 	smtpPassword, _ := utils.GetString("EMAIL_SMTP_PASSWORD")
 	apiKey, _ := utils.GetString("EMAIL_API_KEY")
+	sesAccessKey, _ := utils.GetString("AWS_SES_ACCESS_KEY_ID")
+	sesSecretKey, _ := utils.GetString("AWS_SES_SECRET_ACCESS_KEY")
+	sesRegion, _ := utils.GetString("AWS_SES_REGION")
+	sesEndpoint, _ := utils.GetString("AWS_SES_ENDPOINT")
 	frontendURL, _ := utils.GetString("FRONTEND_URL")
 
 	return EmailConfig{
@@ -222,6 +230,10 @@ func loadEmailConfig() EmailConfig {
 		SMTPUser:     smtpUser,
 		SMTPPassword: smtpPassword,
 		APIKey:       apiKey,
+		SESAccessKey: sesAccessKey,
+		SESSecretKey: sesSecretKey,
+		SESRegion:    sesRegion,
+		SESEndpoint:  sesEndpoint,
 		FrontendURL:  frontendURL,
 	}
 }

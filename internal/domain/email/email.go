@@ -37,19 +37,22 @@ type SMTPConfig struct {
 	Password string
 }
 
-// SendGridConfig holds configuration for SendGrid provider
-type SendGridConfig struct {
-	APIKey string
-}
-
 // ResendConfig holds configuration for Resend provider
 type ResendConfig struct {
 	APIKey string
 }
 
+// SESConfig holds configuration for AWS SES provider
+type SESConfig struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	Region          string
+	Endpoint        string // Optional
+}
+
 // EmailProviderConfig is a constraint for email provider configurations
 type EmailProviderConfig interface {
-	SMTPConfig | SendGridConfig | ResendConfig
+	SMTPConfig | ResendConfig | SESConfig
 }
 
 // EmailConfig holds configuration for email providers with a generic messaging config

@@ -9,11 +9,10 @@ import (
 type ProviderType string
 
 const (
-	ProviderSMTP     ProviderType = "smtp"
-	ProviderNoOp     ProviderType = "noop"
-	ProviderSendGrid ProviderType = "sendgrid"
-	ProviderResend   ProviderType = "resend"
-	ProviderSES      ProviderType = "ses"
+	ProviderSMTP   ProviderType = "smtp"
+	ProviderNoOp   ProviderType = "noop"
+	ProviderResend ProviderType = "resend"
+	ProviderSES    ProviderType = "ses"
 )
 
 // NewEmailSender creates an EmailSender based on the configuration providers.
@@ -37,18 +36,6 @@ func NewEmailSender(
 			ConfigMessaging: cfg,
 		}, logger)
 
-	case ProviderSendGrid:
-		cfg, ok := messagingConfig.(SendGridConfig)
-		if !ok {
-			return nil, fmt.Errorf("invalid messaging config for SendGrid")
-		}
-		return NewSendGridSender(&EmailConfig[SendGridConfig]{
-			Provider:        provider,
-			FromEmail:       fromEmail,
-			FromName:        fromName,
-			ConfigMessaging: cfg,
-		}, logger)
-
 	case ProviderResend:
 		cfg, ok := messagingConfig.(ResendConfig)
 		if !ok {
@@ -66,7 +53,16 @@ func NewEmailSender(
 		return NewNoOpSender(logger), nil
 
 	case ProviderSES:
-		return nil, fmt.Errorf("AWS SES email provider not implemented yet")
+		cfg, ok := messagingConfig.(SESConfig)
+		if !ok {
+			return nil, fmt.Errorf("invalid messaging config for SES")
+		}
+		return NewSESSender(&EmailConfig[SESConfig]{
+			Provider:        provider,
+			FromEmail:       fromEmail,
+			FromName:        fromName,
+			ConfigMessaging: cfg,
+		}, logger)
 
 	default:
 		return nil, fmt.Errorf("unknown email provider: %s", provider)
