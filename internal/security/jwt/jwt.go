@@ -22,12 +22,14 @@ const (
 )
 
 type CustomClaims struct {
-	ID    string   `json:"id"`
-	Name  string   `json:"name"`
-	Email string   `json:"email"`
-	Roles []string `json:"roles,omitempty"`
-	Jti   string   `json:"jti,omitempty"`
-	Type  string   `json:"type,omitempty"`
+	ID         string   `json:"id"`
+	Name       string   `json:"name"`
+	Email      string   `json:"email"`
+	Roles      []string `json:"roles,omitempty"`
+	Plan       string   `json:"plan,omitempty"`
+	AccessMode string   `json:"access_mode,omitempty"`
+	Jti        string   `json:"jti,omitempty"`
+	Type       string   `json:"type,omitempty"`
 	jwt.StandardClaims
 }
 
@@ -101,12 +103,14 @@ func (s *JwtService) generateToken(u *user.User, ttl int64, tokenType string) (s
 	}
 
 	claims := CustomClaims{
-		ID:    strconv.FormatInt(u.ID, 10),
-		Name:  u.Name,
-		Email: u.Email,
-		Roles: roles,
-		Jti:   uuid.New().String(),
-		Type:  tokenType,
+		ID:         strconv.FormatInt(u.ID, 10),
+		Name:       u.Name,
+		Email:      u.Email,
+		Roles:      roles,
+		Plan:       string(u.Metadata.PlanType),
+		AccessMode: string(u.Metadata.AccessMode),
+		Jti:        uuid.New().String(),
+		Type:       tokenType,
 		StandardClaims: jwt.StandardClaims{
 			Subject:   u.Email,
 			Issuer:    s.issuer,

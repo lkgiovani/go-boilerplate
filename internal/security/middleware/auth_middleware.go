@@ -57,6 +57,8 @@ func (m *AuthMiddleware) Authenticate(c *fiber.Ctx) error {
 	c.Locals("userEmail", claims.Email)
 	c.Locals("userName", claims.Name)
 	c.Locals("userRoles", claims.Roles)
+	c.Locals("userPlan", claims.Plan)
+	c.Locals("userAccessMode", claims.AccessMode)
 
 	// Continue to next handler
 	return c.Next()
@@ -90,4 +92,68 @@ func (m *AuthMiddleware) RequireRole(role string) fiber.Handler {
 // RequireAdmin is a convenience middleware for admin-only routes
 func (m *AuthMiddleware) RequireAdmin(c *fiber.Ctx) error {
 	return m.RequireRole("ADMIN")(c)
+}
+
+// RequirePlan creates a middleware that checks if the user has one of the required plans
+func (m *AuthMiddleware) RequirePlan(plans ...string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userPlan, ok := c.Locals("userPlan").(string)
+		if !ok {
+			return errors.Errorf(errors.EFORBIDDEN, "Access denied")
+		}
+
+		// Check if user has one of the required plans
+		hasPlan := false
+		for _, p := range plans {
+			if strings.EqualFold(userPlan, p) {
+				hasPlan = true
+				break
+			}
+		}
+
+		if !hasPlan {
+			return errors.Errorf(errors.EFORBIDDEN, "Seu plano atual não permite acesso a este recurso")
+		}
+
+		return c.Next()
+	}
+}
+
+// RequireMinPlan ensures the user has at least a certain plan level
+func (m *AuthMiddleware) RequireMinPlan(minPlan string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		userPlan, ok := c.Locals("userPlan").(string)
+		if !ok {
+			return errors.Errorf(errors.EFORBIDDEN, "Access denied")
+		}
+
+		planLevels := map[string]int{
+			"FREE":       1,
+			"PRO":        2,
+			"ENTERPRISE": 3,
+		}
+
+		userLevel := planLevels[strings.ToUpper(userPlan)]
+		minLevel := planLevels[strings.ToUpper(minPlan)]
+
+		if userLevel < minLevel {
+			return errors.Errorf(errors.EFORBIDDEN, "Este recurso requer um plano %s ou superior", minPlan)
+		}
+
+		return c.Next()
+	}
+}
+
+// RequireWriteAccess ensures the user has a READ_WRITE access mode
+func (m *AuthMiddleware) RequireWriteAccess(c *fiber.Ctx) error {
+	accessMode, ok := c.Locals("userAccessMode").(string)
+	if !ok {
+		return errors.Errorf(errors.EFORBIDDEN, "Access denied")
+	}
+
+	if !strings.EqualFold(accessMode, "READ_WRITE") {
+		return errors.Errorf(errors.EFORBIDDEN, "Sua conta está em modo de apenas leitura ou desativada")
+	}
+
+	return c.Next()
 }

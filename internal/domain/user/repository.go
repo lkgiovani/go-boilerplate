@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 
+	"github.com/lkgiovani/go-boilerplate/pkg/encrypt"
 	"gorm.io/gorm"
 )
 
@@ -107,14 +108,29 @@ func (r *GormRepository) ChangePassword(ctx context.Context, id int64, currentPa
 		return err
 	}
 
-	// TODO: Verificar senha atual (precisa de bcrypt)
-	// Por enquanto, apenas atualiza
-	user.Password = &newPassword
+	// Verificar senha atual
+	if user.Password != nil {
+		if err := encrypt.VerifyPassword(currentPassword, *user.Password); err != nil {
+			return err
+		}
+	}
+
+	// Gerar hash da nova senha
+	hashedPassword, err := encrypt.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	user.Password = &hashedPassword
 	return r.Update(ctx, user)
 }
 
 func (r *GormRepository) ResetUserPassword(ctx context.Context, id int64, newPassword string) error {
-	return r.db.WithContext(ctx).Model(&User{}).Where("id = ?", id).Update("password", newPassword).Error
+	hashedPassword, err := encrypt.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+	return r.db.WithContext(ctx).Model(&User{}).Where("id = ?", id).Update("password", hashedPassword).Error
 }
 
 func (r *GormRepository) UpdateAccessMode(ctx context.Context, id int64, accessMode string) (*User, error) {
