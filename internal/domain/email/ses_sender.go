@@ -3,24 +3,25 @@ package email
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
+	"go.uber.org/zap"
 )
 
 // SESSender implements EmailSender using AWS SES V2
 type SESSender struct {
 	config *EmailConfig[SESConfig]
-	logger *slog.Logger
+	logger logger.Logger
 	client *sesv2.Client
 }
 
 // NewSESSender creates a new AWS SES email sender
-func NewSESSender(cfg *EmailConfig[SESConfig], logger *slog.Logger) (EmailSender, error) {
+func NewSESSender(cfg *EmailConfig[SESConfig], logger logger.Logger) (EmailSender, error) {
 	if cfg.ConfigMessaging.AccessKeyID == "" || cfg.ConfigMessaging.SecretAccessKey == "" {
 		return nil, fmt.Errorf("AWS SES credentials (access key and secret key) are required")
 	}
@@ -60,8 +61,8 @@ func NewSESSender(cfg *EmailConfig[SESConfig], logger *slog.Logger) (EmailSender
 
 func (s *SESSender) SendEmail(ctx context.Context, to, subject, body string) error {
 	s.logger.Debug("Sending email via AWS SES",
-		slog.String("to", to),
-		slog.String("subject", subject),
+		zap.String("to", to),
+		zap.String("subject", subject),
 	)
 
 	input := &sesv2.SendEmailInput{
@@ -86,18 +87,18 @@ func (s *SESSender) SendEmail(ctx context.Context, to, subject, body string) err
 	_, err := s.client.SendEmail(ctx, input)
 	if err != nil {
 		s.logger.Error("Failed to send email via AWS SES",
-			slog.String("to", to),
-			slog.Any("error", err),
+			zap.String("to", to),
+			zap.Error(err),
 		)
 		return err
 	}
 
-	s.logger.Info("Email sent successfully via AWS SES", slog.String("to", to))
+	s.logger.Info("Email sent successfully via AWS SES", zap.String("to", to))
 	return nil
 }
 
 func (s *SESSender) SendEmailWithAttachment(ctx context.Context, to, subject, body string, attachment Attachment) error {
-	s.logger.Warn("SendEmailWithAttachment not fully implemented for SES yet - sending without attachment", slog.String("to", to))
+	s.logger.Warn("SendEmailWithAttachment not fully implemented for SES yet - sending without attachment", zap.String("to", to))
 	return s.SendEmail(ctx, to, subject, body)
 }
 

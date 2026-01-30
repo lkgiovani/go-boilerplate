@@ -3,20 +3,21 @@ package email
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
 	"github.com/resend/resend-go/v3"
+	"go.uber.org/zap"
 )
 
 // ResendSender implements EmailSender using Resend API
 type ResendSender struct {
 	config *EmailConfig[ResendConfig]
-	logger *slog.Logger
+	logger logger.Logger
 	client *resend.Client
 }
 
 // NewResendSender creates a new Resend email sender
-func NewResendSender(config *EmailConfig[ResendConfig], logger *slog.Logger) (EmailSender, error) {
+func NewResendSender(config *EmailConfig[ResendConfig], logger logger.Logger) (EmailSender, error) {
 	if config.ConfigMessaging.APIKey == "" {
 		return nil, fmt.Errorf("Resend API key is required")
 	}
@@ -32,8 +33,8 @@ func NewResendSender(config *EmailConfig[ResendConfig], logger *slog.Logger) (Em
 
 func (s *ResendSender) SendEmail(ctx context.Context, to, subject, body string) error {
 	s.logger.Debug("Sending email via Resend",
-		slog.String("to", to),
-		slog.String("subject", subject),
+		zap.String("to", to),
+		zap.String("subject", subject),
 	)
 
 	from := s.config.FromEmail
@@ -51,20 +52,20 @@ func (s *ResendSender) SendEmail(ctx context.Context, to, subject, body string) 
 	_, err := s.client.Emails.SendWithContext(ctx, params)
 	if err != nil {
 		s.logger.Error("Failed to send email via Resend",
-			slog.String("to", to),
-			slog.Any("error", err),
+			zap.String("to", to),
+			zap.Error(err),
 		)
 		return err
 	}
 
-	s.logger.Info("Email sent successfully via Resend", slog.String("to", to))
+	s.logger.Info("Email sent successfully via Resend", zap.String("to", to))
 	return nil
 }
 
 func (s *ResendSender) SendEmailWithAttachment(ctx context.Context, to, subject, body string, attachment Attachment) error {
 	s.logger.Debug("Sending email with attachment via Resend",
-		slog.String("to", to),
-		slog.String("subject", subject),
+		zap.String("to", to),
+		zap.String("subject", subject),
 	)
 
 	from := s.config.FromEmail
@@ -88,20 +89,20 @@ func (s *ResendSender) SendEmailWithAttachment(ctx context.Context, to, subject,
 	_, err := s.client.Emails.SendWithContext(ctx, params)
 	if err != nil {
 		s.logger.Error("Failed to send email with attachment via Resend",
-			slog.String("to", to),
-			slog.Any("error", err),
+			zap.String("to", to),
+			zap.Error(err),
 		)
 		return err
 	}
 
-	s.logger.Info("Email with attachment sent successfully via Resend", slog.String("to", to))
+	s.logger.Info("Email with attachment sent successfully via Resend", zap.String("to", to))
 	return nil
 }
 
 func (s *ResendSender) SendBulkEmail(ctx context.Context, recipients []string, subject, body string) error {
 	s.logger.Debug("Sending bulk email via Resend",
-		slog.Int("recipientCount", len(recipients)),
-		slog.String("subject", subject),
+		zap.Int("recipientCount", len(recipients)),
+		zap.String("subject", subject),
 	)
 
 	from := s.config.FromEmail
@@ -119,14 +120,14 @@ func (s *ResendSender) SendBulkEmail(ctx context.Context, recipients []string, s
 	_, err := s.client.Emails.SendWithContext(ctx, params)
 	if err != nil {
 		s.logger.Error("Failed to send bulk email via Resend",
-			slog.Int("recipientCount", len(recipients)),
-			slog.Any("error", err),
+			zap.Int("recipientCount", len(recipients)),
+			zap.Error(err),
 		)
 		return err
 	}
 
 	s.logger.Info("Bulk email sent successfully via Resend",
-		slog.Int("recipientCount", len(recipients)),
+		zap.Int("recipientCount", len(recipients)),
 	)
 	return nil
 }

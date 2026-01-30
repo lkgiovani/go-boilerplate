@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
+
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -12,6 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type R2StorageProvider struct {
@@ -20,10 +22,10 @@ type R2StorageProvider struct {
 	uploader      *manager.Uploader
 	bucket        string
 	publicUrl     string
-	logger        *slog.Logger
+	logger        logger.Logger
 }
 
-func NewR2StorageProvider(cfg R2Config, logger *slog.Logger) (*R2StorageProvider, error) {
+func NewR2StorageProvider(cfg R2Config, logger logger.Logger) (*R2StorageProvider, error) {
 	if cfg.AccountID == "" || cfg.AccessKeyID == "" || cfg.SecretAccessKey == "" || cfg.BucketName == "" {
 		return nil, fmt.Errorf("R2 credentials, account ID and bucket name are required")
 	}
@@ -59,7 +61,7 @@ func NewR2StorageProvider(cfg R2Config, logger *slog.Logger) (*R2StorageProvider
 }
 
 func (r *R2StorageProvider) Upload(ctx context.Context, key string, reader io.Reader, contentType string, size int64) (string, error) {
-	r.logger.Debug("Uploading file to R2", slog.String("key", key), slog.String("bucket", r.bucket))
+	r.logger.Debug("Uploading file to R2", zap.String("key", key), zap.String("bucket", r.bucket))
 
 	input := &s3.PutObjectInput{
 		Bucket:      aws.String(r.bucket),
@@ -70,7 +72,7 @@ func (r *R2StorageProvider) Upload(ctx context.Context, key string, reader io.Re
 
 	_, err := r.uploader.Upload(ctx, input)
 	if err != nil {
-		r.logger.Error("Failed to upload file to R2", slog.String("key", key), slog.Any("error", err))
+		r.logger.Error("Failed to upload file to R2", zap.String("key", key), zap.Error(err))
 		return "", err
 	}
 
@@ -78,7 +80,7 @@ func (r *R2StorageProvider) Upload(ctx context.Context, key string, reader io.Re
 }
 
 func (r *R2StorageProvider) GetPresignedUrl(ctx context.Context, key string, duration time.Duration) (string, error) {
-	r.logger.Debug("Generating presigned GET URL for R2", slog.String("key", key))
+	r.logger.Debug("Generating presigned GET URL for R2", zap.String("key", key))
 
 	request, err := r.presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(r.bucket),
@@ -93,7 +95,7 @@ func (r *R2StorageProvider) GetPresignedUrl(ctx context.Context, key string, dur
 }
 
 func (r *R2StorageProvider) GeneratePresignedUploadUrl(ctx context.Context, key string, contentType string, contentLength int64, duration time.Duration) (string, error) {
-	r.logger.Debug("Generating presigned PUT URL for R2", slog.String("key", key), slog.String("contentType", contentType))
+	r.logger.Debug("Generating presigned PUT URL for R2", zap.String("key", key), zap.String("contentType", contentType))
 
 	request, err := r.presignClient.PresignPutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(r.bucket),
@@ -110,7 +112,7 @@ func (r *R2StorageProvider) GeneratePresignedUploadUrl(ctx context.Context, key 
 }
 
 func (r *R2StorageProvider) Delete(ctx context.Context, key string) error {
-	r.logger.Debug("Deleting file from R2", slog.String("key", key))
+	r.logger.Debug("Deleting file from R2", zap.String("key", key))
 
 	_, err := r.client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(r.bucket),

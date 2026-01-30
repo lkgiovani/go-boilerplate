@@ -5,14 +5,15 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/lkgiovani/go-boilerplate/internal/domain/email"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/user"
 	"github.com/lkgiovani/go-boilerplate/internal/errors"
 	"github.com/lkgiovani/go-boilerplate/pkg/encrypt"
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
 	"github.com/lkgiovani/go-boilerplate/pkg/utils"
+	"go.uber.org/zap"
 )
 
 const (
@@ -25,7 +26,7 @@ type Service struct {
 	userRepo    user.UserService
 	emailSender email.EmailSender
 	frontendURL string
-	logger      *slog.Logger
+	logger      logger.Logger
 }
 
 func NewService(
@@ -33,7 +34,7 @@ func NewService(
 	userRepo user.UserService,
 	emailSender email.EmailSender,
 	frontendURL string,
-	logger *slog.Logger,
+	logger logger.Logger,
 ) *Service {
 	return &Service{
 		tokenRepo:   tokenRepo,
@@ -46,11 +47,11 @@ func NewService(
 
 // CreateAndSendRecoveryToken generates a new token and sends a recovery email
 func (s *Service) CreateAndSendRecoveryToken(ctx context.Context, u *user.User) (*PasswordResetToken, error) {
-	s.logger.Debug("Creating password recovery token for user", slog.Int64("userId", u.ID))
+	s.logger.Debug("Creating password recovery token for user", zap.Int64("userId", u.ID))
 
 	// Mark all existing tokens as used
 	if err := s.tokenRepo.MarkAllAsUsedByUserID(ctx, u.ID); err != nil {
-		s.logger.Warn("Failed to mark existing tokens as used", slog.Any("error", err))
+		s.logger.Warn("Failed to mark existing tokens as used", zap.Error(err))
 	}
 
 	// Generate secure token
@@ -70,7 +71,7 @@ func (s *Service) CreateAndSendRecoveryToken(ctx context.Context, u *user.User) 
 
 	// Save token to database
 	if err := s.tokenRepo.Create(ctx, token); err != nil {
-		s.logger.Error("Failed to save recovery token", slog.Any("error", err))
+		s.logger.Error("Failed to save recovery token", zap.Error(err))
 		return nil, errors.Errorf(errors.EINTERNAL, "failed to create recovery token")
 	}
 
@@ -80,13 +81,13 @@ func (s *Service) CreateAndSendRecoveryToken(ctx context.Context, u *user.User) 
 		sendCtx := context.Background()
 		if err := s.sendPasswordResetEmail(sendCtx, u, tokenCode); err != nil {
 			s.logger.Error("Failed to send recovery email",
-				slog.Int64("userId", u.ID),
-				slog.Any("error", err),
+				zap.Int64("userId", u.ID),
+				zap.Error(err),
 			)
 		}
 	}()
 
-	s.logger.Info("Password recovery token created and email queued", slog.Int64("userId", u.ID))
+	s.logger.Info("Password recovery token created and email queued", zap.Int64("userId", u.ID))
 	return token, nil
 }
 
@@ -96,12 +97,12 @@ func (s *Service) VerifyToken(ctx context.Context, tokenCode string) (*PasswordR
 
 	token, err := s.tokenRepo.FindByToken(ctx, tokenCode)
 	if err != nil {
-		s.logger.Warn("Token not found or already used", slog.String("token", truncateToken(tokenCode)))
+		s.logger.Warn("Token not found or already used", zap.String("token", truncateToken(tokenCode)))
 		return nil, errors.Errorf(errors.ENOTFOUND, "Token inválido ou já utilizado")
 	}
 
 	if token.IsExpired() {
-		s.logger.Warn("Token expired", slog.Int64("tokenId", token.ID))
+		s.logger.Warn("Token expired", zap.Int64("tokenId", token.ID))
 		return nil, errors.Errorf(errors.EINVALID, "Token expirado")
 	}
 
@@ -138,14 +139,14 @@ func (s *Service) ResetPassword(ctx context.Context, tokenCode, newPassword stri
 	// 4. Mark token as used
 	token.MarkAsUsed()
 	if err := s.tokenRepo.Save(ctx, token); err != nil {
-		s.logger.Error("Failed to mark token as used after reset", slog.Any("error", err))
+		s.logger.Error("Failed to mark token as used after reset", zap.Error(err))
 		// We don't fail the operation here as the password was already updated
 	}
 
 	// 5. Revoke all previous tokens for this user
 	_ = s.tokenRepo.MarkAllAsUsedByUserID(ctx, u.ID)
 
-	s.logger.Info("Password reset successfully", slog.Int64("userId", u.ID))
+	s.logger.Info("Password reset successfully", zap.Int64("userId", u.ID))
 	return nil
 }
 

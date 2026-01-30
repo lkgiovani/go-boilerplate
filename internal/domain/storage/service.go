@@ -3,19 +3,20 @@ package storage
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type Service struct {
 	provider          StorageProvider
 	presignedDuration time.Duration
 	publicBaseUrl     string
-	logger            *slog.Logger
+	logger            logger.Logger
 }
 
 type PresignedUpload struct {
@@ -27,7 +28,7 @@ func NewService(
 	provider StorageProvider,
 	presignedDurationMinutes int,
 	publicBaseUrl string,
-	logger *slog.Logger,
+	logger logger.Logger,
 ) *Service {
 	if presignedDurationMinutes <= 0 {
 		presignedDurationMinutes = 60
@@ -45,11 +46,11 @@ func (s *Service) GetPresignedUploadUrl(ctx context.Context, fileName, contentTy
 	extension := filepath.Ext(fileName)
 	key := fmt.Sprintf("users/avatars/%s%s", uuid.New().String(), extension)
 
-	s.logger.Debug("Generating upload URL", slog.String("key", key), slog.String("contentType", contentType))
+	s.logger.Debug("Generating upload URL", zap.String("key", key), zap.String("contentType", contentType))
 
 	signedUrl, err := s.provider.GeneratePresignedUploadUrl(ctx, key, contentType, contentLength, s.presignedDuration)
 	if err != nil {
-		s.logger.Error("Failed to generate presigned upload URL", slog.Any("error", err))
+		s.logger.Error("Failed to generate presigned upload URL", zap.Error(err))
 		return nil, err
 	}
 

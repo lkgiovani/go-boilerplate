@@ -1,15 +1,13 @@
 package fx
 
 import (
-	"log/slog"
-	"os"
-
 	"github.com/lkgiovani/go-boilerplate/infra/config"
 	"github.com/lkgiovani/go-boilerplate/internal/delivery"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/email"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/emailverification"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/passwordRecovery"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/user"
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
 	"go.uber.org/fx"
 	"gorm.io/gorm"
 )
@@ -31,12 +29,12 @@ var EmailModule = fx.Module(
 // ... (skipping lines)
 
 // provideEmailLogger provides Logger for email components
-func provideEmailLogger() *slog.Logger {
-	return slog.New(slog.NewJSONHandler(os.Stdout, nil))
+func provideEmailLogger(logger logger.Logger) logger.Logger {
+	return logger
 }
 
 // provideEmailSender provides the Email Sender based on configuration
-func provideEmailSender(cfg *config.Config, logger *slog.Logger) (email.EmailSender, error) {
+func provideEmailSender(cfg *config.Config, logger logger.Logger) (email.EmailSender, error) {
 	var messagingConfig any
 	switch email.ProviderType(cfg.Email.Provider) {
 	case email.ProviderSMTP:
@@ -77,7 +75,7 @@ func provideEmailVerificationService(
 	userRepo user.UserService,
 	sender email.EmailSender,
 	cfg *config.Config,
-	logger *slog.Logger,
+	logger logger.Logger,
 ) *emailverification.Service {
 	return emailverification.NewService(
 		repo,
@@ -99,7 +97,7 @@ func providePasswordRecoveryService(
 	userRepo user.UserService,
 	sender email.EmailSender,
 	cfg *config.Config,
-	logger *slog.Logger,
+	logger logger.Logger,
 ) *passwordRecovery.Service {
 	return passwordRecovery.NewService(
 		repo,

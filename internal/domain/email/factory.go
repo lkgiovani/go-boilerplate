@@ -2,7 +2,8 @@ package email
 
 import (
 	"fmt"
-	"log/slog"
+
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
 )
 
 // ProviderType defines supported email provider types
@@ -21,7 +22,7 @@ const (
 func NewEmailSender(
 	provider, fromEmail, fromName string,
 	messagingConfig any,
-	logger *slog.Logger,
+	logger logger.Logger,
 ) (EmailSender, error) {
 	switch ProviderType(provider) {
 	case ProviderSMTP:

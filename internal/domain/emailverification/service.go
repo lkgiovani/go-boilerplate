@@ -5,13 +5,15 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"log/slog"
+
 	"time"
 
 	"github.com/lkgiovani/go-boilerplate/internal/domain/email"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/user"
 	"github.com/lkgiovani/go-boilerplate/internal/errors"
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
 	"github.com/lkgiovani/go-boilerplate/pkg/utils"
+	"go.uber.org/zap"
 )
 
 const (
@@ -25,7 +27,7 @@ type Service struct {
 	userRepo    user.UserService
 	emailSender email.EmailSender
 	frontendURL string
-	logger      *slog.Logger
+	logger      logger.Logger
 }
 
 // NewService creates a new email verification service
@@ -34,7 +36,7 @@ func NewService(
 	userRepo user.UserService,
 	emailSender email.EmailSender,
 	frontendURL string,
-	logger *slog.Logger,
+	logger logger.Logger,
 ) *Service {
 	return &Service{
 		tokenRepo:   tokenRepo,
@@ -47,11 +49,11 @@ func NewService(
 
 // CreateAndSendVerificationToken creates a new verification token and sends the email
 func (s *Service) CreateAndSendVerificationToken(ctx context.Context, u *user.User) (*EmailVerificationToken, error) {
-	s.logger.Debug("Creating verification token for user", slog.Int64("userId", u.ID))
+	s.logger.Debug("Creating verification token for user", zap.Int64("userId", u.ID))
 
 	// Mark all existing tokens as used
 	if err := s.tokenRepo.MarkAllAsUsedByUserID(ctx, u.ID); err != nil {
-		s.logger.Error("Failed to mark existing tokens as used", slog.Any("error", err))
+		s.logger.Error("Failed to mark existing tokens as used", zap.Error(err))
 		// Continue anyway, this is not critical
 	}
 
@@ -72,7 +74,7 @@ func (s *Service) CreateAndSendVerificationToken(ctx context.Context, u *user.Us
 
 	// Save token to database
 	if err := s.tokenRepo.Create(ctx, token); err != nil {
-		s.logger.Error("Failed to save verification token", slog.Any("error", err))
+		s.logger.Error("Failed to save verification token", zap.Error(err))
 		return nil, errors.Errorf(errors.EINTERNAL, "failed to create verification token")
 	}
 
@@ -81,13 +83,13 @@ func (s *Service) CreateAndSendVerificationToken(ctx context.Context, u *user.Us
 		sendCtx := context.Background()
 		if err := s.sendVerificationEmail(sendCtx, u.Email, tokenCode); err != nil {
 			s.logger.Error("Failed to send verification email",
-				slog.Int64("userId", u.ID),
-				slog.Any("error", err),
+				zap.Int64("userId", u.ID),
+				zap.Error(err),
 			)
 		}
 	}()
 
-	s.logger.Info("Verification token created and email queued", slog.Int64("userId", u.ID))
+	s.logger.Info("Verification token created and email queued", zap.Int64("userId", u.ID))
 	return token, nil
 }
 
@@ -98,13 +100,13 @@ func (s *Service) VerifyToken(ctx context.Context, tokenCode string) VerifyEmail
 	// Find token (including used ones to give proper error messages)
 	token, err := s.tokenRepo.FindByTokenIncludingUsed(ctx, tokenCode)
 	if err != nil {
-		s.logger.Warn("Token not found", slog.String("token", truncateToken(tokenCode)))
+		s.logger.Warn("Token not found", zap.String("token", truncateToken(tokenCode)))
 		return NewFailureResult("Token inválido ou não encontrado")
 	}
 
 	// Check if already used
 	if token.Used {
-		s.logger.Warn("Token already used", slog.Int64("tokenId", token.ID))
+		s.logger.Warn("Token already used", zap.Int64("tokenId", token.ID))
 
 		// Check if used more than 1 hour ago
 		if token.VerifiedAt != nil && token.VerifiedAt.Before(utils.Now().Add(-1*time.Hour)) {
@@ -122,38 +124,38 @@ func (s *Service) VerifyToken(ctx context.Context, tokenCode string) VerifyEmail
 
 	// Check if expired
 	if token.IsExpired() {
-		s.logger.Warn("Token expired", slog.Int64("tokenId", token.ID))
+		s.logger.Warn("Token expired", zap.Int64("tokenId", token.ID))
 		return NewFailureResult("Token expirado. Solicite um novo código")
 	}
 
 	// Mark token as used
 	token.MarkAsUsed()
 	if err := s.tokenRepo.Save(ctx, token); err != nil {
-		s.logger.Error("Failed to mark token as used", slog.Any("error", err))
+		s.logger.Error("Failed to mark token as used", zap.Error(err))
 		return NewFailureResult("Erro interno ao verificar email")
 	}
 
 	// Update user as verified
 	u, errGet := s.userRepo.GetByID(ctx, token.UserID)
 	if errGet != nil {
-		s.logger.Error("Failed to find user", slog.Any("error", errGet))
+		s.logger.Error("Failed to find user", zap.Error(errGet))
 		return NewFailureResult("Usuário não encontrado")
 	}
 
 	u.Active = true
 	u.Metadata.EmailVerified = true
 	if err := s.userRepo.Update(ctx, u); err != nil {
-		s.logger.Error("Failed to update user verification status", slog.Any("error", err))
+		s.logger.Error("Failed to update user verification status", zap.Error(err))
 		return NewFailureResult("Erro ao atualizar status de verificação")
 	}
 
-	s.logger.Info("Email verified successfully", slog.Int64("userId", token.UserID))
+	s.logger.Info("Email verified successfully", zap.Int64("userId", token.UserID))
 	return NewSuccessResult(token.UserID, token.Email, "Email verificado com sucesso!")
 }
 
 // ResendVerification resends verification email for a given email address
 func (s *Service) ResendVerification(ctx context.Context, emailAddr string) error {
-	s.logger.Debug("Resending verification email", slog.String("email", emailAddr))
+	s.logger.Debug("Resending verification email", zap.String("email", emailAddr))
 
 	// Find user by email
 	u, err := s.userRepo.GetByEmail(ctx, emailAddr)
@@ -172,7 +174,7 @@ func (s *Service) ResendVerification(ctx context.Context, emailAddr string) erro
 		return err
 	}
 
-	s.logger.Info("Verification email resent", slog.String("email", emailAddr))
+	s.logger.Info("Verification email resent", zap.String("email", emailAddr))
 	return nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -12,6 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type S3StorageProvider struct {
@@ -20,10 +21,10 @@ type S3StorageProvider struct {
 	uploader      *manager.Uploader
 	bucket        string
 	region        string
-	logger        *slog.Logger
+	logger        logger.Logger
 }
 
-func NewS3StorageProvider(cfg S3Config, logger *slog.Logger) (*S3StorageProvider, error) {
+func NewS3StorageProvider(cfg S3Config, logger logger.Logger) (*S3StorageProvider, error) {
 	if cfg.AccessKeyID == "" || cfg.SecretAccessKey == "" || cfg.BucketName == "" {
 		return nil, fmt.Errorf("S3 credentials and bucket name are required")
 	}
@@ -61,7 +62,7 @@ func NewS3StorageProvider(cfg S3Config, logger *slog.Logger) (*S3StorageProvider
 }
 
 func (s *S3StorageProvider) Upload(ctx context.Context, key string, reader io.Reader, contentType string, size int64) (string, error) {
-	s.logger.Debug("Uploading file to S3", slog.String("key", key), slog.String("bucket", s.bucket))
+	s.logger.Debug("Uploading file to S3", zap.String("key", key), zap.String("bucket", s.bucket))
 
 	input := &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucket),
@@ -72,7 +73,7 @@ func (s *S3StorageProvider) Upload(ctx context.Context, key string, reader io.Re
 
 	_, err := s.uploader.Upload(ctx, input)
 	if err != nil {
-		s.logger.Error("Failed to upload file to S3", slog.String("key", key), slog.Any("error", err))
+		s.logger.Error("Failed to upload file to S3", zap.String("key", key), zap.Error(err))
 		return "", err
 	}
 
@@ -80,7 +81,7 @@ func (s *S3StorageProvider) Upload(ctx context.Context, key string, reader io.Re
 }
 
 func (s *S3StorageProvider) GetPresignedUrl(ctx context.Context, key string, duration time.Duration) (string, error) {
-	s.logger.Debug("Generating presigned GET URL", slog.String("key", key))
+	s.logger.Debug("Generating presigned GET URL", zap.String("key", key))
 
 	request, err := s.presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
@@ -95,7 +96,7 @@ func (s *S3StorageProvider) GetPresignedUrl(ctx context.Context, key string, dur
 }
 
 func (s *S3StorageProvider) GeneratePresignedUploadUrl(ctx context.Context, key string, contentType string, contentLength int64, duration time.Duration) (string, error) {
-	s.logger.Debug("Generating presigned PUT URL", slog.String("key", key), slog.String("contentType", contentType))
+	s.logger.Debug("Generating presigned PUT URL", zap.String("key", key), zap.String("contentType", contentType))
 
 	request, err := s.presignClient.PresignPutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(s.bucket),
@@ -112,7 +113,7 @@ func (s *S3StorageProvider) GeneratePresignedUploadUrl(ctx context.Context, key 
 }
 
 func (s *S3StorageProvider) Delete(ctx context.Context, key string) error {
-	s.logger.Debug("Deleting file from S3", slog.String("key", key))
+	s.logger.Debug("Deleting file from S3", zap.String("key", key))
 
 	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(s.bucket),

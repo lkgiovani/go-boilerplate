@@ -4,18 +4,20 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type LocalStorageProvider struct {
 	basePath string
-	logger   *slog.Logger
+	logger   logger.Logger
 }
 
-func NewLocalStorageProvider(cfg LocalConfig, logger *slog.Logger) (*LocalStorageProvider, error) {
+func NewLocalStorageProvider(cfg LocalConfig, logger logger.Logger) (*LocalStorageProvider, error) {
 	if cfg.BasePath == "" {
 		cfg.BasePath = "./uploads"
 	}
@@ -29,7 +31,7 @@ func NewLocalStorageProvider(cfg LocalConfig, logger *slog.Logger) (*LocalStorag
 		return nil, fmt.Errorf("failed to create directory %s: %w", absPath, err)
 	}
 
-	logger.Info("Local storage initialized", slog.String("path", absPath))
+	logger.Info("Local storage initialized", zap.String("path", absPath))
 
 	return &LocalStorageProvider{
 		basePath: absPath,
@@ -38,7 +40,7 @@ func NewLocalStorageProvider(cfg LocalConfig, logger *slog.Logger) (*LocalStorag
 }
 
 func (l *LocalStorageProvider) Upload(ctx context.Context, key string, reader io.Reader, contentType string, size int64) (string, error) {
-	l.logger.Debug("Saving file locally", slog.String("key", key))
+	l.logger.Debug("Saving file locally", zap.String("key", key))
 
 	filePath := filepath.Join(l.basePath, key)
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {

@@ -14,6 +14,7 @@ type Handler struct {
 	EmailVerificationService *emailverification.Service
 	EmailVerificationHandler *EmailVerificationHandler
 	PasswordRecoveryHandler  *PasswordRecoveryHandler
+	UploadHandler            *UploadHandler
 	JwtService               *jwt.JwtService
 	ErrorHandler             func(c *fiber.Ctx, err error) error
 }
@@ -24,6 +25,7 @@ func NewHandler(
 	EmailVerificationService *emailverification.Service,
 	EmailVerificationHandler *EmailVerificationHandler,
 	PasswordRecoveryHandler *PasswordRecoveryHandler,
+	UploadHandler *UploadHandler,
 	JwtService *jwt.JwtService,
 	ErrorHandler func(c *fiber.Ctx, err error) error,
 ) *Handler {
@@ -33,6 +35,7 @@ func NewHandler(
 		EmailVerificationService: EmailVerificationService,
 		EmailVerificationHandler: EmailVerificationHandler,
 		PasswordRecoveryHandler:  PasswordRecoveryHandler,
+		UploadHandler:            UploadHandler,
 		JwtService:               JwtService,
 		ErrorHandler:             ErrorHandler,
 	}

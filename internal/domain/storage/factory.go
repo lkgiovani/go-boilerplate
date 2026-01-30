@@ -2,7 +2,8 @@ package storage
 
 import (
 	"fmt"
-	"log/slog"
+
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
 )
 
 type ProviderType string
@@ -16,7 +17,7 @@ const (
 func NewStorageProvider(
 	provider string,
 	storageConfig any,
-	logger *slog.Logger,
+	logger logger.Logger,
 ) (StorageProvider, error) {
 	switch ProviderType(provider) {
 	case ProviderS3:

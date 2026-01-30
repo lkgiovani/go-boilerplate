@@ -4,18 +4,20 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log/slog"
 	"net/smtp"
+
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
+	"go.uber.org/zap"
 )
 
 // SMTPSender implements EmailSender using SMTP
 type SMTPSender struct {
 	config *EmailConfig[SMTPConfig]
-	logger *slog.Logger
+	logger logger.Logger
 }
 
 // NewSMTPSender creates a new SMTP email sender
-func NewSMTPSender(config *EmailConfig[SMTPConfig], logger *slog.Logger) (EmailSender, error) {
+func NewSMTPSender(config *EmailConfig[SMTPConfig], logger logger.Logger) (EmailSender, error) {
 	if config.ConfigMessaging.Host == "" || config.ConfigMessaging.Port == 0 || config.ConfigMessaging.User == "" || config.ConfigMessaging.Password == "" {
 		return nil, fmt.Errorf("SMTP host and port are required")
 	}
@@ -28,8 +30,8 @@ func NewSMTPSender(config *EmailConfig[SMTPConfig], logger *slog.Logger) (EmailS
 
 func (s *SMTPSender) SendEmail(ctx context.Context, to, subject, body string) error {
 	s.logger.Debug("Sending email via SMTP",
-		slog.String("to", to),
-		slog.String("subject", subject),
+		zap.String("to", to),
+		zap.String("subject", subject),
 	)
 
 	msg := s.buildMessage(to, subject, body)
@@ -45,13 +47,13 @@ func (s *SMTPSender) SendEmail(ctx context.Context, to, subject, body string) er
 
 	if err != nil {
 		s.logger.Error("Failed to send email",
-			slog.String("to", to),
-			slog.Any("error", err),
+			zap.String("to", to),
+			zap.Error(err),
 		)
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
-	s.logger.Info("Email sent successfully", slog.String("to", to))
+	s.logger.Info("Email sent successfully", zap.String("to", to))
 	return nil
 }
 
@@ -65,8 +67,8 @@ func (s *SMTPSender) SendBulkEmail(ctx context.Context, recipients []string, sub
 	for _, recipient := range recipients {
 		if err := s.SendEmail(ctx, recipient, subject, body); err != nil {
 			s.logger.Error("Failed to send bulk email to recipient",
-				slog.String("to", recipient),
-				slog.Any("error", err),
+				zap.String("to", recipient),
+				zap.Error(err),
 			)
 			lastErr = err
 		}

@@ -12,7 +12,6 @@ import (
 var StorageModule = fx.Module("storage",
 	fx.Provide(
 		NewStorageProvider,
-		NewStorageService,
 		delivery.NewUploadHandler,
 	),
 )
@@ -43,20 +42,11 @@ func NewStorageProvider(cfg *config.Config, log logger.Logger) (storage.StorageP
 		}
 	}
 
-	provider, err := storage.NewStorageProvider(cfg.Storage.Provider, storageCfg, log.GetSlogLogger())
+	provider, err := storage.NewStorageProvider(cfg.Storage.Provider, storageCfg, log)
 	if err != nil {
 		log.Error("Failed to create storage provider", zap.Error(err))
 		return nil, err
 	}
 
 	return provider, nil
-}
-
-func NewStorageService(provider storage.StorageProvider, cfg *config.Config, log logger.Logger) *storage.Service {
-	return storage.NewService(
-		provider,
-		cfg.Storage.PresignedUrlDuration,
-		cfg.Storage.PublicBaseURL,
-		log.GetSlogLogger(),
-	)
 }
