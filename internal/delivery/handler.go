@@ -15,8 +15,10 @@ type Handler struct {
 	EmailVerificationHandler *EmailVerificationHandler
 	PasswordRecoveryHandler  *PasswordRecoveryHandler
 	UploadHandler            *UploadHandler
+	MobileAuthHandler        *MobileAuthHandler
 	JwtService               *jwt.JwtService
-	ErrorHandler             func(c *fiber.Ctx, err error) error
+
+	ErrorHandler func(c *fiber.Ctx, err error) error
 }
 
 func NewHandler(
@@ -26,7 +28,9 @@ func NewHandler(
 	EmailVerificationHandler *EmailVerificationHandler,
 	PasswordRecoveryHandler *PasswordRecoveryHandler,
 	UploadHandler *UploadHandler,
+	MobileAuthHandler *MobileAuthHandler,
 	JwtService *jwt.JwtService,
+
 	ErrorHandler func(c *fiber.Ctx, err error) error,
 ) *Handler {
 	return &Handler{
@@ -36,8 +40,10 @@ func NewHandler(
 		EmailVerificationHandler: EmailVerificationHandler,
 		PasswordRecoveryHandler:  PasswordRecoveryHandler,
 		UploadHandler:            UploadHandler,
+		MobileAuthHandler:        MobileAuthHandler,
 		JwtService:               JwtService,
-		ErrorHandler:             ErrorHandler,
+
+		ErrorHandler: ErrorHandler,
 	}
 }
 

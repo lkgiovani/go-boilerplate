@@ -23,6 +23,7 @@ type Service struct {
 	AuthRepo                 Repository
 	JwtService               *jwt.JwtService
 	EmailVerificationService *emailverification.Service
+	GoogleTokenGateway       GoogleTokenGateway
 }
 
 func NewService(
@@ -31,6 +32,7 @@ func NewService(
 	authRepo Repository,
 	jwtService *jwt.JwtService,
 	emailVerSvc *emailverification.Service,
+	googleTokenGateway GoogleTokenGateway,
 ) *Service {
 	return &Service{
 		UserRepo:                 userRepo,
@@ -38,6 +40,7 @@ func NewService(
 		AuthRepo:                 authRepo,
 		JwtService:               jwtService,
 		EmailVerificationService: emailVerSvc,
+		GoogleTokenGateway:       googleTokenGateway,
 	}
 }
 
@@ -249,4 +252,87 @@ func PasswordRequirements(password string) error {
 	}
 
 	return nil
+}
+
+func (s *Service) AuthenticateWithGoogleMobile(ctx context.Context, idToken, deviceID, userAgent, ipAddress string) (*MobileAuthResult, error) {
+	googleUser, err := s.GoogleTokenGateway.VerifyAndExtract(ctx, idToken)
+	if err != nil {
+		return nil, errors.Errorf(errors.EUNAUTHORIZED, "falha ao verificar token do Google: %v", err)
+	}
+
+	userEntity, isNewUser, err := s.findOrCreateGoogleUser(ctx, googleUser)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update last access
+	now := time.Now()
+	userEntity.LastAccess = &now
+	if err := s.UserRepo.Update(ctx, userEntity); err != nil {
+		return nil, errors.Errorf(errors.EINTERNAL, "falha ao atualizar último acesso")
+	}
+
+	accessToken, refreshToken, _, err := s.CreateSession(ctx, userEntity, userAgent, ipAddress, deviceID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MobileAuthResult{
+		UserID:       userEntity.ID,
+		Email:        userEntity.Email,
+		Name:         userEntity.Name,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresIn:    s.JwtService.GetAccessTokenExpirationSeconds(),
+		IsNewUser:    isNewUser,
+	}, nil
+}
+
+func (s *Service) findOrCreateGoogleUser(ctx context.Context, googleUser *GoogleUserInfo) (*user.User, bool, error) {
+	existingUser, err := s.UserRepo.GetByEmail(ctx, googleUser.Email)
+	if err == nil && existingUser != nil {
+		if existingUser.Source != "GOOGLE" {
+			existingUser.Source = "GOOGLE"
+			if googleUser.PictureURL != "" {
+				existingUser.ImgURL = &googleUser.PictureURL
+			}
+			// Google users are pre-verified
+			existingUser.Metadata.EmailVerified = true
+			if err := s.UserRepo.Update(ctx, existingUser); err != nil {
+				return nil, false, errors.Errorf(errors.EINTERNAL, "falha ao atualizar usuário")
+			}
+		}
+		return existingUser, false, nil
+	}
+
+	// Create new user
+	newUser := &user.User{
+		Name:     googleUser.Name,
+		Email:    googleUser.Email,
+		Source:   "GOOGLE",
+		ImgURL:   &googleUser.PictureURL,
+		Active:   true,
+		Admin:    false,
+		Metadata: user.NewDefaultMetadata(),
+	}
+	newUser.Metadata.EmailVerified = true
+
+	if createErr := s.UserRepo.Create(ctx, newUser); createErr != nil {
+		return nil, false, errors.Errorf(errors.EINTERNAL, "falha ao criar usuário")
+	}
+
+	return newUser, true, nil
+}
+
+func (s *Service) RefreshMobileToken(ctx context.Context, refreshToken, userAgent, ipAddress, deviceID string) (*MobileRefreshResult, error) {
+	accessToken, newRefreshToken, _, err := s.RefreshToken(ctx, refreshToken, userAgent, ipAddress, deviceID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MobileRefreshResult{
+		AccessToken:  accessToken,
+		RefreshToken: newRefreshToken,
+		ExpiresIn:    s.JwtService.GetAccessTokenExpirationSeconds(),
+	}, nil
 }
