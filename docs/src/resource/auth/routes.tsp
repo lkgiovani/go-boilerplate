@@ -2,6 +2,7 @@ import "@typespec/http";
 import "@typespec/rest";
 import "./models.tsp";
 import "../common/models.tsp";
+import "../users/models.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
@@ -17,7 +18,7 @@ interface AuthOperations {
   @summary("User login")
   login(@body request: LoginRequest): {
     @statusCode statusCode: 200;
-    @body body: AuthResponse;
+    @body body: LoginResponse;
   } | {
     @statusCode statusCode: 401;
     @body body: ErrorResponse;
@@ -27,9 +28,9 @@ interface AuthOperations {
   @post
   @route("/refresh")
   @summary("Refresh token")
-  refresh(@body request: RefreshRequest): {
+  refresh(): {
     @statusCode statusCode: 200;
-    @body body: AuthResponse;
+    @body body: RefreshResponse;
   } | {
     @statusCode statusCode: 401;
     @body body: ErrorResponse;
@@ -41,7 +42,7 @@ interface AuthOperations {
   @summary("Logout")
   logout(@header Authorization?: string): {
     @statusCode statusCode: 200;
-    @body body: LogoutResponse;
+    @body body: SuccessResponse;
   } | {
     @statusCode statusCode: 401;
     @body body: ErrorResponse;
@@ -53,7 +54,7 @@ interface AuthOperations {
   @summary("Logout from all sessions")
   logoutAll(@header Authorization?: string): {
     @statusCode statusCode: 200;
-    @body body: LogoutResponse;
+    @body body: SuccessResponse;
   } | {
     @statusCode statusCode: 401;
     @body body: ErrorResponse;
@@ -65,7 +66,7 @@ interface AuthOperations {
   @summary("User signup")
   signup(@body request: SignupRequest): {
     @statusCode statusCode: 201;
-    @body body: AuthResponse;
+    @body body: UserResponse;
   } | {
     @statusCode statusCode: 400;
     @body body: ErrorResponse;
@@ -117,6 +118,33 @@ interface PasswordRecoveryOperations {
     @body body: PasswordRecoveryResponse;
   } | {
     @statusCode statusCode: 400;
+    @body body: ErrorResponse;
+  };
+}
+@tag("Mobile Authentication")
+@route("/v1/auth/mobile")
+interface MobileAuthOperations {
+  @doc("Authenticate using Google OAuth2 for mobile")
+  @post
+  @route("/oauth2/google")
+  @summary("Google Mobile Auth")
+  authenticateWithGoogleMobile(@body request: MobileOAuth2Request): {
+    @statusCode statusCode: 200;
+    @body body: MobileLoginResponse;
+  } | {
+    @statusCode statusCode: 401;
+    @body body: ErrorResponse;
+  };
+
+  @doc("Refresh mobile access token")
+  @post
+  @route("/refresh")
+  @summary("Mobile Refresh Token")
+  refreshMobileToken(@body request: MobileRefreshRequest): {
+    @statusCode statusCode: 200;
+    @body body: MobileRefreshResponse;
+  } | {
+    @statusCode statusCode: 401;
     @body body: ErrorResponse;
   };
 }

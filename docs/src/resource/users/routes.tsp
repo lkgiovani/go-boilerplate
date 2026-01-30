@@ -77,7 +77,6 @@ interface AuthenticatedUserOperations {
     @body request: UpdatePasswordRequest
   ): {
     @statusCode statusCode: 200;
-    @body body: SuccessResponse;
   } | {
     @statusCode statusCode: 400 | 401;
     @body body: ErrorResponse;
@@ -89,12 +88,31 @@ interface AuthenticatedUserOperations {
   @summary("Add user image")
   addImage(
     @header Authorization?: string,
-    @body request: AddImageRequest
+    @body request: UploadImageRequest
   ): {
     @statusCode statusCode: 200;
-    @body body: UserResponse;
+    @body body: UploadResponse;
   } | {
     @statusCode statusCode: 400 | 401;
+    @body body: ErrorResponse;
+  };
+}
+
+@tag("Uploads")
+@route("/v1/uploads")
+interface UploadOperations {
+  @doc("Get presigned URL for image upload")
+  @post
+  @route("/images")
+  @summary("Get upload URL")
+  getUploadUrl(
+    @header Authorization?: string,
+    @body request: UploadImageRequest
+  ): {
+    @statusCode statusCode: 200;
+    @body body: UploadResponse;
+  } | {
+    @statusCode statusCode: 400 | 401 | 403;
     @body body: ErrorResponse;
   };
 }
@@ -171,7 +189,7 @@ interface AdminUserOperations {
   updateUserAdmin(
     @header Authorization?: string,
     @path id: string,
-    @body request: UpdateUserAdminRequest
+    @body request: UpdateUserRequest
   ): {
     @statusCode statusCode: 200;
     @body body: UserResponse;
@@ -188,8 +206,7 @@ interface AdminUserOperations {
     @header Authorization?: string,
     @path id: string
   ): {
-    @statusCode statusCode: 200;
-    @body body: SuccessResponse;
+    @statusCode statusCode: 204;
   } | {
     @statusCode statusCode: 401 | 403 | 404;
     @body body: ErrorResponse;
@@ -201,10 +218,9 @@ interface AdminUserOperations {
   @summary("Delete users (admin)")
   deleteUsersByIDs(
     @header Authorization?: string,
-    @body request: DeleteUsersByIDsRequest
+    @query ids: string
   ): {
-    @statusCode statusCode: 200;
-    @body body: SuccessResponse;
+    @statusCode statusCode: 204;
   } | {
     @statusCode statusCode: 400 | 401 | 403;
     @body body: ErrorResponse;
@@ -217,7 +233,7 @@ interface AdminUserOperations {
   toggleUserStatus(
     @header Authorization?: string,
     @path userId: string,
-    @body request: ToggleUserStatusRequest
+    @query active: boolean
   ): {
     @statusCode statusCode: 200;
     @body body: UserResponse;
@@ -233,10 +249,9 @@ interface AdminUserOperations {
   updatePasswordAdmin(
     @header Authorization?: string,
     @path id: string,
-    @body request: UpdatePasswordAdminRequest
+    @body request: UpdatePasswordRequest
   ): {
     @statusCode statusCode: 200;
-    @body body: SuccessResponse;
   } | {
     @statusCode statusCode: 400 | 401 | 403 | 404;
     @body body: ErrorResponse;
@@ -296,7 +311,8 @@ interface AdminUserOperations {
   @summary("Grant lifetime pro (admin)")
   grantLifetimePro(
     @header Authorization?: string,
-    @path id: string
+    @path id: string,
+    @body request: GrantLifetimeProRequest
   ): {
     @statusCode statusCode: 200;
     @body body: UserResponse;

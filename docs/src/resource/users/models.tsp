@@ -4,18 +4,42 @@ namespace GrowthAPI;
 
 // User Models
 model User {
-  id: string;
+  id: int64;
   email: string;
   name: string;
-  role: string;
-  image_url?: string;
-  status: string;
-  access_mode?: string;
-  features?: Record<string>;
-  limits?: Record<string>;
-  lifetime_pro?: boolean;
-  created_at: utcDateTime;
-  updated_at: utcDateTime;
+  imgUrl?: string;
+  admin: boolean;
+  active: boolean;
+  source: string;
+  metadata: UserMetadata;
+  lastAccess?: utcDateTime;
+  createdAt: utcDateTime;
+  updatedAt: utcDateTime;
+}
+
+model UserMetadata {
+  accessMode: string;
+  planType: string;
+  planExpirationDate?: utcDateTime;
+  proSource?: string;
+  maxResources?: int32;
+  maxRequestsPerMonth?: int32;
+  maxAccounts: int32;
+  maxCategoriesPerAccount: int32;
+  maxTransactionsPerMonth: int32;
+  canExportData: boolean;
+  canUseReports: boolean;
+  canUseAdvancedFeatures: boolean;
+  canCreateBudgets: boolean;
+  canUseGoals: boolean;
+  emailVerified: boolean;
+  reputationStatus: string;
+  suspiciousActivityCount: int32;
+  lastSecurityCheck?: utcDateTime;
+  lastPermissionCheck?: utcDateTime;
+  notes?: string;
+  locale: string;
+  currency: string;
 }
 
 model CreateUserRequest {
@@ -28,20 +52,15 @@ model CreateUserRequest {
 model UpdateUserRequest {
   name?: string;
   email?: string;
+  imgUrl?: string;
 }
 
 model UpdatePasswordRequest {
-  current_password: string;
-  new_password: string;
+  currentPassword?: string;
+  password: string;
 }
 
-model UpdatePasswordAdminRequest {
-  new_password: string;
-}
 
-model AddImageRequest {
-  image_url: string;
-}
 
 model SignupUserRequest {
   email: string;
@@ -53,32 +72,29 @@ model ResendVerificationRequest {
   email: string;
 }
 
-model UpdateUserAdminRequest {
-  name?: string;
-  email?: string;
-  role?: string;
-  status?: string;
-}
 
-model ToggleUserStatusRequest {
-  status: string;
-}
 
 model UpdateAccessModeRequest {
-  access_mode: string;
+  accessMode: string;
 }
 
 model UpdateFeaturesRequest {
-  features: Record<string>;
+  canCreateBudgets?: boolean;
+  canExportData?: boolean;
+  canUseReports?: boolean;
+  canUseGoals?: boolean;
 }
 
 model UpdateLimitsRequest {
-  limits: Record<string>;
+  maxAccounts?: int32;
+  maxTransactionsPerMonth?: int32;
+  maxCategoriesPerAccount?: int32;
 }
 
-model DeleteUsersByIDsRequest {
-  ids: string[];
+model GrantLifetimeProRequest {
+  reason: string;
 }
+
 
 model UserResponse {
   user: User;
@@ -89,6 +105,18 @@ model UsersListResponse {
   total: int64;
   page: int32;
   limit: int32;
+}
+
+// Upload Models
+model UploadImageRequest {
+  fileName: string;
+  contentType: string;
+  contentLength: int64;
+}
+
+model UploadResponse {
+  uploadSignedUrl: string;
+  publicUrl: string;
 }
 
 // Email Verification Models

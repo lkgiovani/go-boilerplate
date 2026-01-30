@@ -14,23 +14,23 @@ model SignupRequest {
   name: string;
 }
 
-model RefreshRequest {
-  refresh_token?: string;
+model LoginResponse {
+  userId: int64;
+  email: string;
+  accessToken: string;
+  expiresIn: int64;
 }
 
-model AuthResponse {
-  access_token: string;
-  refresh_token: string;
-  user: UserInfo;
+model RefreshResponse {
+  accessToken: string;
+  expiresIn: int64;
 }
 
 model UserInfo {
-  id: string;
+  id: int64;
   email: string;
   name: string;
-  role: string;
-  created_at: utcDateTime;
-  updated_at: utcDateTime;
+  admin: boolean;
 }
 
 model LogoutResponse {
@@ -57,4 +57,29 @@ model PasswordRecoveryResponse {
 
 model VerifyPasswordRecoveryResponse {
   valid: boolean;
+}
+// Mobile Auth Models
+model MobileOAuth2Request {
+  idToken: string;
+  deviceId?: string;
+}
+
+model MobileLoginResponse {
+  userId: int64;
+  email: string;
+  name: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: int64;
+  isNewUser: boolean;
+}
+
+model MobileRefreshRequest {
+  refreshToken: string;
+}
+
+model MobileRefreshResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: int64;
 }
