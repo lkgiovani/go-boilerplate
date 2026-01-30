@@ -11,15 +11,17 @@ import (
 
 var StorageModule = fx.Module("storage",
 	fx.Provide(
+		storage.NewFileRepository,
 		NewStorageProvider,
 		provideStorageService,
 		delivery.NewUploadHandler,
 	),
 )
 
-func provideStorageService(provider storage.StorageProvider, cfg *config.Config, log logger.Logger) *storage.Service {
+func provideStorageService(provider storage.StorageProvider, repo storage.FileRepository, cfg *config.Config, log logger.Logger) *storage.Service {
 	return storage.NewService(
 		provider,
+		repo,
 		cfg.Storage.PresignedUrlDuration,
 		cfg.Storage.PublicBaseURL,
 		log,

@@ -69,6 +69,7 @@ func setupRoutes(
 	// Upload routes
 	uploads := v1.Group("/uploads")
 	uploads.Use(authMiddleware.Authenticate)
+	uploads.Use(authMiddleware.RequireMinPlan("PRO")) // Only PRO patients or higher can upload files directly
 	uploads.Post("/images", handler.UploadHandler.GetUploadUrl)
 
 	// Email Verification routes
@@ -91,9 +92,9 @@ func setupRoutes(
 
 	// Authenticated user routes
 	users.Get("/me", handler.GetCurrentUser)
-	users.Put("/", handler.UpdateUser)
-	users.Patch("/password", handler.UpdatePassword)
-	users.Patch("/add-image", handler.AddImage)
+	users.Put("/", authMiddleware.RequireWriteAccess, handler.UpdateUser)
+	users.Patch("/password", authMiddleware.RequireWriteAccess, handler.UpdatePassword)
+	users.Patch("/add-image", authMiddleware.RequireWriteAccess, handler.AddImage)
 
 	// Admin routes (require admin role)
 	adminUsers := users.Group("")
