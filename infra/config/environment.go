@@ -21,6 +21,7 @@ type Config struct {
 	Admin    AdminConfig
 	Email    EmailConfig
 	Storage  StorageConfig
+	OAuth2   OAuth2Config
 }
 
 type StorageConfig struct {
@@ -82,6 +83,11 @@ type JWTConfig struct {
 type AdminConfig struct {
 	Email    string
 	Password string
+}
+
+type OAuth2Config struct {
+	GoogleAndroidClientID string
+	GoogleIosClientID     string
 }
 
 func LoadEnvironment() {
@@ -294,6 +300,23 @@ func loadStorageConfig() StorageConfig {
 	}
 }
 
+func loadOAuth2Config() OAuth2Config {
+	androidID, err := utils.GetString("GOOGLE_ANDROID_CLIENT_ID")
+	if androidID == "" {
+		log.Fatalf("Failed to get GOOGLE_ANDROID_CLIENT_ID from environment: %v", err)
+	}
+
+	iosID, err := utils.GetString("GOOGLE_IOS_CLIENT_ID")
+	if iosID == "" {
+		log.Fatalf("Failed to get GOOGLE_IOS_CLIENT_ID from environment: %v", err)
+	}
+
+	return OAuth2Config{
+		GoogleAndroidClientID: androidID,
+		GoogleIosClientID:     iosID,
+	}
+}
+
 func LoadConfig() *Config {
 	LoadEnvironment()
 	return &Config{
@@ -303,5 +326,6 @@ func LoadConfig() *Config {
 		Admin:    loadAdminConfig(),
 		Email:    loadEmailConfig(),
 		Storage:  loadStorageConfig(),
+		OAuth2:   loadOAuth2Config(),
 	}
 }
