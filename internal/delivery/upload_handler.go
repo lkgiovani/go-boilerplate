@@ -26,9 +26,6 @@ func (h *UploadHandler) GetUploadUrl(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
 	}
 
-	// In a real scenario, you would validate the request here
-	// using a validator library if integrated.
-
 	result, err := h.storageService.GetPresignedUploadUrl(c.Context(), req.FileName, req.ContentType, req.ContentLength)
 	if err != nil {
 		h.logger.Error("Failed to generate presigned URL", zap.Error(err))

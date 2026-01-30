@@ -48,7 +48,7 @@ func NewService(
 
 func (s *Service) Upload(ctx context.Context, userID int64, fileType string, reader io.Reader, fileName, contentType string, size int64) (*FileReference, error) {
 	extension := filepath.Ext(fileName)
-	// Base path: users/{userID}/{fileType}/{uuid}{ext}
+
 	key := fmt.Sprintf("users/%d/%s/%s%s", userID, strings.ToLower(fileType), uuid.New().String(), extension)
 
 	s.logger.Debug("Uploading file", zap.String("key", key), zap.Int64("size", size))
@@ -71,7 +71,7 @@ func (s *Service) Upload(ctx context.Context, userID int64, fileType string, rea
 
 	if err := s.repo.Save(ctx, fileRef); err != nil {
 		s.logger.Error("Failed to save file reference to DB", zap.Error(err))
-		// Note: We might want to delete the file from storage if DB save fails
+
 		return nil, err
 	}
 

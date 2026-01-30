@@ -130,7 +130,7 @@ func (s *S3StorageProvider) Exists(ctx context.Context, key string) (bool, error
 	})
 
 	if err != nil {
-		return false, nil // Should check for specific error types if needed
+		return false, nil
 	}
 
 	return true, nil

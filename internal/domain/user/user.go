@@ -40,7 +40,6 @@ const (
 )
 
 type UserMetadata struct {
-	// Subscription and Plan
 	AccessMode          AccessMode `json:"access_mode"`
 	PlanType            PlanType   `json:"plan_type"`
 	PlanExpirationDate  *time.Time `json:"plan_expiration_date,omitempty"`
@@ -48,32 +47,27 @@ type UserMetadata struct {
 	MaxResources        *int       `json:"max_resources,omitempty"`
 	MaxRequestsPerMonth *int       `json:"max_requests_per_month,omitempty"`
 
-	// Limits
 	MaxAccounts             int `json:"max_accounts"`
 	MaxCategoriesPerAccount int `json:"max_categories_per_account"`
 	MaxTransactionsPerMonth int `json:"max_transactions_per_month"`
 
-	// Features
 	CanExportData          bool `json:"can_export_data"`
 	CanUseReports          bool `json:"can_use_reports"`
 	CanUseAdvancedFeatures bool `json:"can_use_advanced_features"`
 	CanCreateBudgets       bool `json:"can_create_budgets"`
 	CanUseGoals            bool `json:"can_use_goals"`
 
-	// Security and Status
 	EmailVerified           bool             `json:"email_verified"`
 	ReputationStatus        ReputationStatus `json:"reputation_status"`
 	SuspiciousActivityCount int              `json:"suspicious_activity_count"`
 	LastSecurityCheck       *time.Time       `json:"last_security_check,omitempty"`
 	LastPermissionCheck     *time.Time       `json:"last_permission_check,omitempty"`
 
-	// Localization and Notes
 	Notes    *string `json:"notes,omitempty"`
 	Locale   string  `json:"locale"`
 	Currency string  `json:"currency"`
 }
 
-// Scan implements the sql.Scanner interface for UserMetadata
 func (m *UserMetadata) Scan(value interface{}) error {
 	if value == nil {
 		return nil
@@ -85,7 +79,6 @@ func (m *UserMetadata) Scan(value interface{}) error {
 	return json.Unmarshal(bytes, m)
 }
 
-// Value implements the driver.Valuer interface for UserMetadata
 func (m UserMetadata) Value() (driver.Value, error) {
 	return json.Marshal(m)
 }

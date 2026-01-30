@@ -6,8 +6,6 @@ import (
 	"github.com/lkgiovani/go-boilerplate/pkg/utils"
 )
 
-// EmailVerificationToken represents a token for email verification
-// Maps to email_verification_tokens table (see V4 migration)
 type EmailVerificationToken struct {
 	ID         int64      `gorm:"primaryKey;autoIncrement"`
 	UserID     int64      `gorm:"not null;index"`
@@ -19,24 +17,20 @@ type EmailVerificationToken struct {
 	CreatedAt  time.Time  `gorm:"not null;autoCreateTime"`
 }
 
-// TableName specifies the table name for GORM
 func (EmailVerificationToken) TableName() string {
 	return "email_verification_tokens"
 }
 
-// IsExpired checks if the token has expired
 func (e *EmailVerificationToken) IsExpired() bool {
 	return utils.Now().Unix() > e.ExpiresAt.UTC().Unix()
 }
 
-// MarkAsUsed marks the token as used
 func (e *EmailVerificationToken) MarkAsUsed() {
 	now := utils.Now()
 	e.Used = true
 	e.VerifiedAt = &now
 }
 
-// VerifyEmailResult represents the result of email verification
 type VerifyEmailResult struct {
 	Success bool   `json:"success"`
 	UserID  int64  `json:"userId,omitempty"`
@@ -44,7 +38,6 @@ type VerifyEmailResult struct {
 	Message string `json:"message"`
 }
 
-// NewSuccessResult creates a successful verification result
 func NewSuccessResult(userID int64, email, message string) VerifyEmailResult {
 	return VerifyEmailResult{
 		Success: true,
@@ -54,7 +47,6 @@ func NewSuccessResult(userID int64, email, message string) VerifyEmailResult {
 	}
 }
 
-// NewFailureResult creates a failed verification result
 func NewFailureResult(message string) VerifyEmailResult {
 	return VerifyEmailResult{
 		Success: false,

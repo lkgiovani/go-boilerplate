@@ -297,7 +297,6 @@ func (h *Handler) DeleteUsersByIDs(c *fiber.Ctx) error {
 		return errors.Errorf(errors.EBADREQUEST, "IDs parameter is required")
 	}
 
-	// Parse IDs from format "1,2,3" or similar
 	parts := strings.Split(idsParam, ",")
 	var ids []int64
 	for _, p := range parts {

@@ -25,7 +25,6 @@ var EmailModule = fx.Module(
 	),
 )
 
-// provideEmailSender provides the Email Sender based on configuration
 func provideEmailSender(cfg *config.Config, logger logger.Logger) (email.EmailSender, error) {
 	var messagingConfig any
 	switch email.ProviderType(cfg.Email.Provider) {
@@ -56,12 +55,10 @@ func provideEmailSender(cfg *config.Config, logger logger.Logger) (email.EmailSe
 	)
 }
 
-// provideEmailVerificationRepository provides the Email Verification Repository
 func provideEmailVerificationRepository(db *gorm.DB) emailverification.Repository {
 	return emailverification.NewGormRepository(db)
 }
 
-// provideEmailVerificationService provides the Email Verification Service
 func provideEmailVerificationService(
 	repo emailverification.Repository,
 	userRepo user.UserService,
@@ -78,12 +75,10 @@ func provideEmailVerificationService(
 	)
 }
 
-// providePasswordRecoveryRepository provides the Password Recovery Repository
 func providePasswordRecoveryRepository(db *gorm.DB) passwordRecovery.Repository {
 	return passwordRecovery.NewGormRepository(db)
 }
 
-// providePasswordRecoveryService provides the Password Recovery Service
 func providePasswordRecoveryService(
 	repo passwordRecovery.Repository,
 	userRepo user.UserService,

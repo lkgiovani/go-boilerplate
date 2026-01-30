@@ -7,33 +7,24 @@ import (
 	"gorm.io/gorm"
 )
 
-// Repository defines the interface for password reset token storage
 type Repository interface {
-	// Create saves a new password reset token
 	Create(ctx context.Context, token *PasswordResetToken) error
 
-	// FindByToken finds a token by its value (only non-used tokens)
 	FindByToken(ctx context.Context, token string) (*PasswordResetToken, error)
 
-	// FindByTokenIncludingUsed finds a token by its value (including used tokens)
 	FindByTokenIncludingUsed(ctx context.Context, token string) (*PasswordResetToken, error)
 
-	// MarkAllAsUsedByUserID marks all tokens for a user as used
 	MarkAllAsUsedByUserID(ctx context.Context, userID int64) error
 
-	// Save updates an existing token
 	Save(ctx context.Context, token *PasswordResetToken) error
 
-	// DeleteExpired removes expired tokens
 	DeleteExpired(ctx context.Context) error
 }
 
-// GormRepository implements Repository using GORM
 type GormRepository struct {
 	db *gorm.DB
 }
 
-// NewGormRepository creates a new GORM-based repository
 func NewGormRepository(db *gorm.DB) Repository {
 	return &GormRepository{db: db}
 }

@@ -17,7 +17,6 @@ import (
 )
 
 const (
-	// TokenExpirationHours defines how long a password reset token is valid
 	TokenExpirationHours = 1
 )
 
@@ -45,22 +44,18 @@ func NewService(
 	}
 }
 
-// CreateAndSendRecoveryToken generates a new token and sends a recovery email
 func (s *Service) CreateAndSendRecoveryToken(ctx context.Context, u *user.User) (*PasswordResetToken, error) {
 	s.logger.Debug("Creating password recovery token for user", zap.Int64("userId", u.ID))
 
-	// Mark all existing tokens as used
 	if err := s.tokenRepo.MarkAllAsUsedByUserID(ctx, u.ID); err != nil {
 		s.logger.Warn("Failed to mark existing tokens as used", zap.Error(err))
 	}
 
-	// Generate secure token
 	tokenCode, err := generateSecureToken()
 	if err != nil {
 		return nil, errors.Errorf(errors.EINTERNAL, "failed to generate secure token")
 	}
 
-	// Create token entity
 	token := &PasswordResetToken{
 		UserID:    u.ID,
 		Email:     u.Email,
@@ -69,15 +64,13 @@ func (s *Service) CreateAndSendRecoveryToken(ctx context.Context, u *user.User) 
 		Used:      false,
 	}
 
-	// Save token to database
 	if err := s.tokenRepo.Create(ctx, token); err != nil {
 		s.logger.Error("Failed to save recovery token", zap.Error(err))
 		return nil, errors.Errorf(errors.EINTERNAL, "failed to create recovery token")
 	}
 
-	// Send recovery email asynchronously
 	go func() {
-		// Use a detached context for the background job
+
 		sendCtx := context.Background()
 		if err := s.sendPasswordResetEmail(sendCtx, u, tokenCode); err != nil {
 			s.logger.Error("Failed to send recovery email",
@@ -91,7 +84,6 @@ func (s *Service) CreateAndSendRecoveryToken(ctx context.Context, u *user.User) 
 	return token, nil
 }
 
-// VerifyToken verifies the password reset token without consuming it
 func (s *Service) VerifyToken(ctx context.Context, tokenCode string) (*PasswordResetToken, error) {
 	s.logger.Debug("Verifying password reset token")
 
@@ -109,23 +101,19 @@ func (s *Service) VerifyToken(ctx context.Context, tokenCode string) (*PasswordR
 	return token, nil
 }
 
-// ResetPassword verifies the token and updates the user's password
 func (s *Service) ResetPassword(ctx context.Context, tokenCode, newPassword string) error {
 	s.logger.Debug("Resetting password with token")
 
-	// 1. Verify token
 	token, err := s.VerifyToken(ctx, tokenCode)
 	if err != nil {
 		return err
 	}
 
-	// 2. Hash new password
 	hashedPassword, err := encrypt.HashPassword(newPassword)
 	if err != nil {
 		return errors.Errorf(errors.EINTERNAL, "Erro ao processar nova senha")
 	}
 
-	// 3. Update user password
 	u, err := s.userRepo.GetByID(ctx, token.UserID)
 	if err != nil {
 		return errors.Errorf(errors.ENOTFOUND, "Usuário não encontrado")
@@ -136,28 +124,24 @@ func (s *Service) ResetPassword(ctx context.Context, tokenCode, newPassword stri
 		return errors.Errorf(errors.EINTERNAL, "Erro ao atualizar senha")
 	}
 
-	// 4. Mark token as used
 	token.MarkAsUsed()
 	if err := s.tokenRepo.Save(ctx, token); err != nil {
 		s.logger.Error("Failed to mark token as used after reset", zap.Error(err))
-		// We don't fail the operation here as the password was already updated
+
 	}
 
-	// 5. Revoke all previous tokens for this user
 	_ = s.tokenRepo.MarkAllAsUsedByUserID(ctx, u.ID)
 
 	s.logger.Info("Password reset successfully", zap.Int64("userId", u.ID))
 	return nil
 }
 
-// sendPasswordResetEmail sends the link to the frontend for password reset
 func (s *Service) sendPasswordResetEmail(ctx context.Context, u *user.User, tokenCode string) error {
-	// Link points to the frontend reset-password page
+
 	resetLink := fmt.Sprintf("%s/reset-password?token=%s", s.frontendURL, tokenCode)
 
 	subject := "Recuperação de Senha"
 
-	// Simple and direct email body as requested
 	body := fmt.Sprintf(`
 		<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
 			<h2>Olá, %s</h2>

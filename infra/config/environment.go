@@ -193,13 +193,11 @@ func loadJWTConfig() JWTConfig {
 		log.Fatalf("Failed to get JWT_EXPIRES_IN from environment: %v", err)
 	}
 
-	// Optional: Audience (default: "boilerplate-api")
 	audience, _ := utils.GetString("JWT_AUDIENCE")
 	if audience == "" {
 		audience = "boilerplate-api"
 	}
 
-	// Optional: Cookie Domain (default: empty)
 	cookieDomain, _ := utils.GetString("COOKIE_DOMAIN")
 
 	return JWTConfig{

@@ -9,14 +9,12 @@ import (
 	"go.uber.org/zap"
 )
 
-// ResendSender implements EmailSender using Resend API
 type ResendSender struct {
 	config *EmailConfig[ResendConfig]
 	logger logger.Logger
 	client *resend.Client
 }
 
-// NewResendSender creates a new Resend email sender
 func NewResendSender(config *EmailConfig[ResendConfig], logger logger.Logger) (EmailSender, error) {
 	if config.ConfigMessaging.APIKey == "" {
 		return nil, fmt.Errorf("Resend API key is required")

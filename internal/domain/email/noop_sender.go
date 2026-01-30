@@ -7,12 +7,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// NoOpSender is a no-operation email sender for development/testing
 type NoOpSender struct {
 	logger logger.Logger
 }
 
-// NewNoOpSender creates a new no-op email sender that just logs emails
 func NewNoOpSender(logger logger.Logger) EmailSender {
 	return &NoOpSender{logger: logger}
 }

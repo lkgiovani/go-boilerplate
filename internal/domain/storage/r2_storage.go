@@ -30,12 +30,10 @@ func NewR2StorageProvider(cfg R2Config, logger logger.Logger) (*R2StorageProvide
 		return nil, fmt.Errorf("R2 credentials, account ID and bucket name are required")
 	}
 
-	// Cloudflare R2 endpoint format: https://<account_id>.r2.cloudflarestorage.com
 	endpoint := fmt.Sprintf("https://%s.r2.cloudflarestorage.com", cfg.AccountID)
 
 	creds := credentials.NewStaticCredentialsProvider(cfg.AccessKeyID, cfg.SecretAccessKey, "")
 
-	// R2 uses 'auto' as region, though the SDK might require a placeholder or specific handling
 	opts := []func(*config.LoadOptions) error{
 		config.WithRegion("auto"),
 		config.WithCredentialsProvider(creds),
@@ -143,6 +141,6 @@ func (r *R2StorageProvider) GetPublicUrl(key string) string {
 	if r.publicUrl != "" {
 		return fmt.Sprintf("%s/%s", r.publicUrl, key)
 	}
-	// Fallback or custom logic if needed
+
 	return fmt.Sprintf("r2://%s/%s", r.bucket, key)
 }

@@ -10,13 +10,11 @@ import (
 	"go.uber.org/zap"
 )
 
-// SMTPSender implements EmailSender using SMTP
 type SMTPSender struct {
 	config *EmailConfig[SMTPConfig]
 	logger logger.Logger
 }
 
-// NewSMTPSender creates a new SMTP email sender
 func NewSMTPSender(config *EmailConfig[SMTPConfig], logger logger.Logger) (EmailSender, error) {
 	if config.ConfigMessaging.Host == "" || config.ConfigMessaging.Port == 0 || config.ConfigMessaging.User == "" || config.ConfigMessaging.Password == "" {
 		return nil, fmt.Errorf("SMTP host and port are required")

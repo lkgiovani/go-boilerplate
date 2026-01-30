@@ -7,39 +7,30 @@ import (
 	"gorm.io/gorm"
 )
 
-// Repository defines the interface for email verification token storage
 type Repository interface {
-	// Create saves a new email verification token
 	Create(ctx context.Context, token *EmailVerificationToken) error
 
-	// FindByToken finds a token by its value (only non-used tokens)
 	FindByToken(ctx context.Context, token string) (*EmailVerificationToken, error)
 
-	// FindByTokenIncludingUsed finds a token by its value (including used tokens)
 	FindByTokenIncludingUsed(ctx context.Context, token string) (*EmailVerificationToken, error)
 
-	// MarkAllAsUsedByUserID marks all tokens for a user as used
 	MarkAllAsUsedByUserID(ctx context.Context, userID int64) error
 
-	// Save updates an existing token
 	Save(ctx context.Context, token *EmailVerificationToken) error
 
-	// DeleteExpired removes expired tokens (for cleanup jobs)
 	DeleteExpired(ctx context.Context) error
 }
 
-// GormRepository implements Repository using GORM
 type GormRepository struct {
 	db *gorm.DB
 }
 
-// NewGormRepository creates a new GORM-based repository
 func NewGormRepository(db *gorm.DB) Repository {
 	return &GormRepository{db: db}
 }
 
 func (r *GormRepository) Create(ctx context.Context, token *EmailVerificationToken) error {
-	// ID is auto-incremented by the database, no need to set it
+
 	return r.db.WithContext(ctx).Create(token).Error
 }
 

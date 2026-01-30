@@ -24,7 +24,6 @@ func NewPasswordRecoveryHandler(
 	}
 }
 
-// RequestPasswordRecovery handles the first step: requesting a reset link
 func (h *PasswordRecoveryHandler) RequestPasswordRecovery(c *fiber.Ctx) error {
 	var req struct {
 		Email string `json:"email"`
@@ -41,7 +40,7 @@ func (h *PasswordRecoveryHandler) RequestPasswordRecovery(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	u, err := h.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
-		// Security: don't reveal if email exists
+
 		return c.JSON(fiber.Map{"message": "Se o email estiver cadastrado, um link de recuperação será enviado."})
 	}
 
@@ -53,7 +52,6 @@ func (h *PasswordRecoveryHandler) RequestPasswordRecovery(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Se o email estiver cadastrado, um link de recuperação será enviado."})
 }
 
-// VerifyPasswordRecovery matches POST /verify
 func (h *PasswordRecoveryHandler) VerifyPasswordRecovery(c *fiber.Ctx) error {
 	var req struct {
 		Token string `json:"token"`
@@ -75,7 +73,6 @@ func (h *PasswordRecoveryHandler) VerifyPasswordRecovery(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"valid": true})
 }
 
-// VerifyPasswordRecoveryByQuery matches GET /verify?token=...
 func (h *PasswordRecoveryHandler) VerifyPasswordRecoveryByQuery(c *fiber.Ctx) error {
 	token := c.Query("token")
 	if token == "" {
@@ -90,7 +87,6 @@ func (h *PasswordRecoveryHandler) VerifyPasswordRecoveryByQuery(c *fiber.Ctx) er
 	return c.JSON(fiber.Map{"valid": true})
 }
 
-// ResetPassword matches POST /reset
 func (h *PasswordRecoveryHandler) ResetPassword(c *fiber.Ctx) error {
 	var req struct {
 		Token    string `json:"token"`

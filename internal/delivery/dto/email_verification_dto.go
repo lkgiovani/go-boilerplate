@@ -1,6 +1,6 @@
 package dto
 
-// Email Verification Request DTOs
+// Request DTOs
 
 type VerifyEmailRequest struct {
 	Token string `json:"token" validate:"required"`
@@ -10,7 +10,7 @@ type ResendEmailVerificationRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
-// Email Verification Response DTOs
+// Response DTOs
 
 type EmailVerificationResponse struct {
 	Success bool   `json:"success"`

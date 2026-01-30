@@ -28,23 +28,19 @@ func NewInsertAdminUser(userService UserService, cfg *config.Config, log logger.
 func (i *InsertAdminUser) Execute(ctx context.Context) error {
 	adminEmail := i.config.Admin.Email
 
-	// Verificar se o usuário admin já existe
 	existingUser, err := i.userService.GetByEmail(ctx, adminEmail)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		i.logger.Error("[InsertAdminUser] Error checking if admin user exists", zap.Error(err))
 		return err
 	}
 
-	// Se o usuário já existe, não fazer nada
 	if existingUser != nil {
 		i.logger.Debug("[InsertAdminUser] Administrator user already exists")
 		return nil
 	}
 
-	// Criar o usuário administrador
 	i.logger.Info("[InsertAdminUser] Administrator user not found, creating with email", zap.String("email", adminEmail))
 
-	// Hash da senha
 	hashedPassword, err := encrypt.HashPassword(i.config.Admin.Password)
 	if err != nil {
 		i.logger.Error("[InsertAdminUser] Error hashing admin password", zap.Error(err))

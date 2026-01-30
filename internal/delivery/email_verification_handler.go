@@ -11,14 +11,12 @@ import (
 	"github.com/lkgiovani/go-boilerplate/internal/errors"
 )
 
-// EmailVerificationHandler handles email verification endpoints
 type EmailVerificationHandler struct {
 	service      *emailverification.Service
 	userRepo     user.UserService
 	ErrorHandler func(c *fiber.Ctx, err error) error
 }
 
-// NewEmailVerificationHandler creates a new email verification handler
 func NewEmailVerificationHandler(
 	service *emailverification.Service,
 	userRepo user.UserService,
@@ -31,23 +29,19 @@ func NewEmailVerificationHandler(
 	}
 }
 
-// SendVerificationEmail sends a verification email to the authenticated user
-// POST /v1/email-verification/send
 func (h *EmailVerificationHandler) SendVerificationEmail(c *fiber.Ctx) error {
-	// Get current user from context (set by auth middleware)
+
 	userID, ok := c.Locals("userID").(int64)
 	if !ok {
 		return errors.Errorf(errors.EUNAUTHORIZED, "User not authenticated")
 	}
 
-	// Get user from database
 	ctx := c.UserContext()
 	u, err := h.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		return h.ErrorHandler(c, errors.Errorf(errors.ENOTFOUND, "User not found"))
 	}
 
-	// Check if already verified
 	if u.Active {
 		return c.Status(fiber.StatusOK).JSON(dto.EmailVerificationResponse{
 			Success: true,
@@ -66,8 +60,6 @@ func (h *EmailVerificationHandler) SendVerificationEmail(c *fiber.Ctx) error {
 	})
 }
 
-// VerifyEmail verifies an email using the token in the request body
-// POST /v1/email-verification/verify
 func (h *EmailVerificationHandler) VerifyEmail(c *fiber.Ctx) error {
 	var req dto.VerifyEmailRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -89,8 +81,6 @@ func (h *EmailVerificationHandler) VerifyEmail(c *fiber.Ctx) error {
 	})
 }
 
-// VerifyEmailByQuery verifies an email using the token in query parameter
-// GET /v1/email-verification/verify?token=xxx
 func (h *EmailVerificationHandler) VerifyEmailByQuery(c *fiber.Ctx) error {
 	token := c.Query("token")
 	if token == "" {
@@ -100,8 +90,6 @@ func (h *EmailVerificationHandler) VerifyEmailByQuery(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	result := h.service.VerifyToken(ctx, token)
 
-	// If it's a GET request, it's likely a human clicking the email link
-	// Return a simple HTML page instead of JSON
 	c.Set("Content-Type", "text/html")
 	if result.Success {
 		return c.Status(fiber.StatusOK).SendString(`
@@ -162,8 +150,6 @@ func (h *EmailVerificationHandler) VerifyEmailByQuery(c *fiber.Ctx) error {
 	`, result.Message))
 }
 
-// ResendVerificationEmail resends verification email to the specified email address
-// POST /v1/email-verification/resend
 func (h *EmailVerificationHandler) ResendVerificationEmail(c *fiber.Ctx) error {
 	var req dto.ResendEmailVerificationRequest
 	if err := c.BodyParser(&req); err != nil {

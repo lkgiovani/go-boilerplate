@@ -58,7 +58,6 @@ func (s *Service) Login(ctx context.Context, login *Login) (*user.User, error) {
 		return nil, errors.Errorf(errors.EUNAUTHORIZED, "invalid email or password")
 	}
 
-	// Admin users do not need email verification (or you can choose they do)
 	if !u.Admin {
 		if !u.Active {
 			return nil, errors.Errorf(errors.EUNAUTHORIZED, "Sua conta está inativa. Entre em contato com o suporte.")
@@ -77,14 +76,13 @@ func (s *Service) CreateSession(ctx context.Context, u *user.User, userAgent, ip
 		return "", "", nil, err
 	}
 
-	// Save refresh token to DB
 	rt := &RefreshToken{
 		ID:        uuid.New(),
 		UserID:    u.ID,
 		UserEmail: u.Email,
 		DeviceID:  deviceID,
 		Jti:       refreshClaims.Jti,
-		FamilyID:  uuid.New(), // New family for new login
+		FamilyID:  uuid.New(),
 		TokenHash: utils.HashToken(refreshToken),
 		ExpiresAt: time.Unix(refreshClaims.ExpiresAt, 0),
 		CreatedAt: utils.Now(),
@@ -100,7 +98,7 @@ func (s *Service) CreateSession(ctx context.Context, u *user.User, userAgent, ip
 }
 
 func (s *Service) RefreshToken(ctx context.Context, token, userAgent, ipAddress, deviceID string) (string, string, []*http.Cookie, error) {
-	// 1. Parse and validate the token string
+
 	claims, err := s.JwtService.ParseToken(token)
 	if err != nil {
 		return "", "", nil, errors.Errorf(errors.EUNAUTHORIZED, "invalid refresh token")
@@ -110,7 +108,6 @@ func (s *Service) RefreshToken(ctx context.Context, token, userAgent, ipAddress,
 		return "", "", nil, errors.Errorf(errors.EUNAUTHORIZED, "invalid token type")
 	}
 
-	// 2. Look up in DB
 	hash := utils.HashToken(token)
 	storedToken, err := s.AuthRepo.GetRefreshTokenByHash(ctx, hash)
 	if err != nil {
@@ -118,13 +115,13 @@ func (s *Service) RefreshToken(ctx context.Context, token, userAgent, ipAddress,
 	}
 
 	if storedToken.RevokedAt != nil {
-		// Token reuse detection! Revoke the whole family
+
 		_ = s.AuthRepo.RevokeAllUserRefreshTokens(ctx, storedToken.UserID)
 		return "", "", nil, errors.Errorf(errors.EUNAUTHORIZED, "token revoked")
 	}
 
 	if storedToken.Used {
-		// Potential reuse attack
+
 		_ = s.AuthRepo.RevokeAllUserRefreshTokens(ctx, storedToken.UserID)
 		return "", "", nil, errors.Errorf(errors.EUNAUTHORIZED, "token already used")
 	}
@@ -134,7 +131,6 @@ func (s *Service) RefreshToken(ctx context.Context, token, userAgent, ipAddress,
 		return "", "", nil, errors.Errorf(errors.EUNAUTHORIZED, "user not found")
 	}
 
-	// Admin users do not need email verification
 	if !u.Admin {
 		if !u.Active {
 			return "", "", nil, errors.Errorf(errors.EUNAUTHORIZED, "Sua conta está inativa.")
@@ -144,25 +140,22 @@ func (s *Service) RefreshToken(ctx context.Context, token, userAgent, ipAddress,
 		}
 	}
 
-	// 4. Generate new tokens (rotation)
 	accessToken, refreshToken, refreshClaims, cookies, err := s.JwtService.GenerateCookies(u)
 	if err != nil {
 		return "", "", nil, err
 	}
 
-	// 5. Mark old as used
 	if err := s.AuthRepo.MarkAsUsed(ctx, hash); err != nil {
 		return "", "", nil, err
 	}
 
-	// 6. Save new token
 	newRt := &RefreshToken{
 		ID:          uuid.New(),
 		UserID:      u.ID,
 		UserEmail:   u.Email,
 		DeviceID:    deviceID,
 		Jti:         refreshClaims.Jti,
-		FamilyID:    storedToken.FamilyID, // Keep the same family
+		FamilyID:    storedToken.FamilyID,
 		TokenHash:   utils.HashToken(refreshToken),
 		ExpiresAt:   time.Unix(refreshClaims.ExpiresAt, 0),
 		CreatedAt:   utils.Now(),
@@ -202,10 +195,8 @@ func (s *Service) Register(ctx context.Context, u *user.User) error {
 		return errors.Errorf(errors.EINTERNAL, "failed to create user")
 	}
 
-	// Trigger email verification
 	if _, err := s.EmailVerificationService.CreateAndSendVerificationToken(ctx, u); err != nil {
-		// Log error but don't fail registration
-		// You might want to handle this differently in production
+
 		return nil
 	}
 
@@ -213,7 +204,7 @@ func (s *Service) Register(ctx context.Context, u *user.User) error {
 }
 
 func (s *Service) RevokeRefreshToken(ctx context.Context, token string) error {
-	// If token is empty, nothing to revoke
+
 	if token == "" {
 		return nil
 	}
@@ -265,7 +256,6 @@ func (s *Service) AuthenticateWithGoogleMobile(ctx context.Context, idToken, dev
 		return nil, err
 	}
 
-	// Update last access
 	now := time.Now()
 	userEntity.LastAccess = &now
 	if err := s.UserRepo.Update(ctx, userEntity); err != nil {
@@ -296,7 +286,7 @@ func (s *Service) findOrCreateGoogleUser(ctx context.Context, googleUser *Google
 			if googleUser.PictureURL != "" {
 				existingUser.ImgURL = &googleUser.PictureURL
 			}
-			// Google users are pre-verified
+
 			existingUser.Metadata.EmailVerified = true
 			if err := s.UserRepo.Update(ctx, existingUser); err != nil {
 				return nil, false, errors.Errorf(errors.EINTERNAL, "falha ao atualizar usuário")
@@ -305,7 +295,6 @@ func (s *Service) findOrCreateGoogleUser(ctx context.Context, googleUser *Google
 		return existingUser, false, nil
 	}
 
-	// Create new user
 	newUser := &user.User{
 		Name:     googleUser.Name,
 		Email:    googleUser.Email,

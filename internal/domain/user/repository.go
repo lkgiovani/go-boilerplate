@@ -71,7 +71,6 @@ func (r *GormRepository) FindAllWithFilter(ctx context.Context, keyword string, 
 	offset := (page - 1) * size
 	query := r.db.WithContext(ctx).Model(&User{})
 
-	// Filtrar por nome ou email
 	if keyword != "" {
 		query = query.Where("name ILIKE ? OR email ILIKE ?", "%"+keyword+"%", "%"+keyword+"%")
 	}
@@ -92,30 +91,28 @@ func (r *GormRepository) ToggleStatus(ctx context.Context, id int64, active bool
 }
 
 func (r *GormRepository) RequestPasswordReset(ctx context.Context, email string) error {
-	// TODO: Implementar lógica de reset de senha
+
 	return nil
 }
 
 func (r *GormRepository) ResetPassword(ctx context.Context, token, newPassword string) error {
-	// TODO: Implementar lógica de reset de senha com token
+
 	return nil
 }
 
 func (r *GormRepository) ChangePassword(ctx context.Context, id int64, currentPassword, newPassword string) error {
-	// Buscar usuário
+
 	user, err := r.GetByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	// Verificar senha atual
 	if user.Password != nil {
 		if err := encrypt.VerifyPassword(currentPassword, *user.Password); err != nil {
 			return err
 		}
 	}
 
-	// Gerar hash da nova senha
 	hashedPassword, err := encrypt.HashPassword(newPassword)
 	if err != nil {
 		return err
@@ -201,8 +198,7 @@ func (r *GormRepository) GrantLifetimePro(ctx context.Context, id int64, reason 
 
 	user.Metadata.PlanType = PlanTypePro
 	user.Metadata.Notes = &reason
-	// Para Lifetime Pro, podemos definir uma data muito distante ou deixar nulo
-	// Aqui vamos deixar nulo para representar "vitalício"
+
 	user.Metadata.PlanExpirationDate = nil
 
 	if err := r.Update(ctx, user); err != nil {
@@ -230,7 +226,6 @@ func (r *GormRepository) EnsureMetadata(ctx context.Context, id int64) (*User, e
 		return nil, err
 	}
 
-	// Se o campo Locale (que é obrigatório no default) estiver vazio, assumimos que precisa de inicialização
 	if user.Metadata.Locale == "" {
 		user.Metadata = NewDefaultMetadata()
 		if err := r.Update(ctx, user); err != nil {

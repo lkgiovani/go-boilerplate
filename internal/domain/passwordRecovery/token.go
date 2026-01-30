@@ -17,17 +17,14 @@ type PasswordResetToken struct {
 	CreatedAt time.Time  `gorm:"not null;autoCreateTime"`
 }
 
-// TableName specifies the table name for GORM
 func (PasswordResetToken) TableName() string {
 	return "password_reset_tokens"
 }
 
-// IsExpired checks if the token has expired
 func (p *PasswordResetToken) IsExpired() bool {
 	return utils.Now().Unix() > p.ExpiresAt.UTC().Unix()
 }
 
-// MarkAsUsed marks the token as used
 func (p *PasswordResetToken) MarkAsUsed() {
 	now := utils.Now()
 	p.Used = true

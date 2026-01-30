@@ -25,8 +25,7 @@ func NewGoogleGateway(androidClientID, iosClientID string) *GoogleGateway {
 }
 
 func (g *GoogleGateway) VerifyAndExtract(ctx context.Context, idToken string) (*auth.GoogleUserInfo, error) {
-	// For production, you should use google.golang.org/api/oauth2/v2 or verify the JWT locally
-	// using Google's public keys. For now, we'll use the tokeninfo endpoint.
+
 	url := fmt.Sprintf("https://oauth2.googleapis.com/tokeninfo?id_token=%s", idToken)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
@@ -56,7 +55,6 @@ func (g *GoogleGateway) VerifyAndExtract(ctx context.Context, idToken string) (*
 		return nil, err
 	}
 
-	// Validate audience
 	isValidAudience := false
 	for _, clientID := range g.allowedClientIDs {
 		if result.Aud == clientID {

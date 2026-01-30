@@ -91,7 +91,7 @@ func (s *JwtService) GenerateAccessToken(u *user.User) (string, *CustomClaims, e
 }
 
 func (s *JwtService) GenerateRefreshToken(u *user.User) (string, *CustomClaims, error) {
-	return s.generateToken(u, s.tokenTTL*7, "refresh") // Refresh token lasts 7x longer (e.g., 7 days)
+	return s.generateToken(u, s.tokenTTL*7, "refresh")
 }
 
 func (s *JwtService) generateToken(u *user.User, ttl int64, tokenType string) (string, *CustomClaims, error) {
@@ -177,7 +177,6 @@ func (s *JwtService) GenerateCookies(u *user.User) (string, string, *CustomClaim
 		return "", "", nil, nil, err
 	}
 
-	// Determinar se deve usar Secure baseado na presença de um domínio (ambiente real)
 	isSecure := s.cookieDomain != ""
 
 	cookies := []*http.Cookie{
@@ -227,10 +226,10 @@ func (s *JwtService) CleanAll(cookieNames []string) []*http.Cookie {
 	cookies := make([]*http.Cookie, 0, len(cookieNames))
 	for _, name := range cookieNames {
 		if name == RefreshTokenCookieName {
-			// Clear specifically from where we set it
+
 			cookies = append(cookies, s.makeCleanCookie(name, "/v1/auth/refresh"))
 		} else {
-			// Clear others (access_token, etc) from root
+
 			cookies = append(cookies, s.makeCleanCookie(name, "/"))
 		}
 	}
@@ -269,7 +268,6 @@ func (s *JwtService) CleanAllFromHeader(cookieHeader string) []*http.Cookie {
 		}
 	}
 
-	// Always ensure known cookies are in the list
 	names = append(names, AccessTokenCookieName, RefreshTokenCookieName)
 	return s.CleanAll(names)
 }

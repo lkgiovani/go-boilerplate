@@ -13,7 +13,7 @@ type FileReference struct {
 	StorageKey       string    `gorm:"uniqueIndex;not null"`
 	ContentType      string    `gorm:"not null"`
 	FileSize         int64     `gorm:"not null"`
-	FileType         string    `gorm:"not null"` // e.g., PROFILE_IMAGE, DOCUMENT
+	FileType         string    `gorm:"not null"`
 	StorageProvider  string    `gorm:"not null;default:'S3'"`
 	CreatedAt        time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
 }
@@ -26,7 +26,6 @@ type FileRepository interface {
 	FindByUserID(ctx context.Context, userID int64) ([]FileReference, error)
 }
 
-// StorageProvider is the interface for file storage operations
 type StorageProvider interface {
 	Upload(ctx context.Context, key string, reader io.Reader, contentType string, size int64) (string, error)
 	GetPresignedUrl(ctx context.Context, key string, duration time.Duration) (string, error)
@@ -37,30 +36,26 @@ type StorageProvider interface {
 	GetPublicUrl(key string) string
 }
 
-// S3Config holds configuration for AWS S3
 type S3Config struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	Region          string
 	BucketName      string
-	Endpoint        string // Optional (e.g., for LocalStack)
+	Endpoint        string
 }
 
-// LocalConfig holds configuration for Local storage
 type LocalConfig struct {
 	BasePath string
 }
 
-// R2Config holds configuration for Cloudflare R2
 type R2Config struct {
 	AccountID       string
 	AccessKeyID     string
 	SecretAccessKey string
 	BucketName      string
-	PublicURL       string // Optional: Custom domain/public URL for R2
+	PublicURL       string
 }
 
-// StorageConfig is a generic config for storage providers
 type StorageProviderConfig interface {
 	S3Config | LocalConfig | R2Config
 }

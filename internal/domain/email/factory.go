@@ -6,7 +6,6 @@ import (
 	"github.com/lkgiovani/go-boilerplate/pkg/logger"
 )
 
-// ProviderType defines supported email provider types
 type ProviderType string
 
 const (
@@ -16,9 +15,6 @@ const (
 	ProviderSES    ProviderType = "ses"
 )
 
-// NewEmailSender creates an EmailSender based on the configuration providers.
-// Since EmailConfig is now generic, this factory receives specific configurations
-// for each provider type via type assertions.
 func NewEmailSender(
 	provider, fromEmail, fromName string,
 	messagingConfig any,

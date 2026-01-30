@@ -19,8 +19,6 @@ func NewMobileAuthHandler(authService *auth.Service, errorHandler func(c *fiber.
 	}
 }
 
-// AuthenticateWithGoogleMobile handles Google authentication for mobile devices
-// POST /v1/auth/mobile/oauth2/google
 func (h *MobileAuthHandler) AuthenticateWithGoogleMobile(c *fiber.Ctx) error {
 	var req dto.MobileOAuth2RequestDTO
 	if err := c.BodyParser(&req); err != nil {
@@ -53,8 +51,6 @@ func (h *MobileAuthHandler) AuthenticateWithGoogleMobile(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response)
 }
 
-// RefreshMobileToken handles token refresh for mobile devices
-// POST /v1/auth/mobile/refresh
 func (h *MobileAuthHandler) RefreshMobileToken(c *fiber.Ctx) error {
 	var req dto.MobileRefreshRequestDTO
 	if err := c.BodyParser(&req); err != nil {

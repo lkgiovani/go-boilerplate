@@ -50,15 +50,13 @@ func StartServer(lc fx.Lifecycle, p ServerParams) {
 func newRouter(cfg *config.Config) *fiber.App {
 	app := fiber.New()
 
-	// CORS configuration for cookie usage
-	// Note: AllowOrigins cannot be "*" when AllowCredentials is true
 	origins := cfg.Server.AllowedOrigins
 	if origins == "" || origins == "*" {
-		// Provide safer defaults if not explicitly configured or if wildcard is used
+
 		if cfg.Server.Mode == "development" {
 			origins = "http://localhost:3000,http://localhost:5173,http://localhost:4000"
 		} else {
-			origins = "" // Strict default for production
+			origins = ""
 		}
 	}
 

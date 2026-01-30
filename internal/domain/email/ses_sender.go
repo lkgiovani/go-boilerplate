@@ -13,21 +13,19 @@ import (
 	"go.uber.org/zap"
 )
 
-// SESSender implements EmailSender using AWS SES V2
 type SESSender struct {
 	config *EmailConfig[SESConfig]
 	logger logger.Logger
 	client *sesv2.Client
 }
 
-// NewSESSender creates a new AWS SES email sender
 func NewSESSender(cfg *EmailConfig[SESConfig], logger logger.Logger) (EmailSender, error) {
 	if cfg.ConfigMessaging.AccessKeyID == "" || cfg.ConfigMessaging.SecretAccessKey == "" {
 		return nil, fmt.Errorf("AWS SES credentials (access key and secret key) are required")
 	}
 
 	if cfg.ConfigMessaging.Region == "" {
-		cfg.ConfigMessaging.Region = "us-east-1" // Default region
+		cfg.ConfigMessaging.Region = "us-east-1"
 	}
 
 	creds := credentials.NewStaticCredentialsProvider(
