@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/auth"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/emailverification"
+	"github.com/lkgiovani/go-boilerplate/internal/domain/storage"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/user"
 	"github.com/lkgiovani/go-boilerplate/internal/security/jwt"
 )
@@ -17,6 +18,7 @@ type Handler struct {
 	UploadHandler            *UploadHandler
 	MobileAuthHandler        *MobileAuthHandler
 	JwtService               *jwt.JwtService
+	StorageService           *storage.Service
 
 	ErrorHandler func(c *fiber.Ctx, err error) error
 }
@@ -30,6 +32,7 @@ func NewHandler(
 	UploadHandler *UploadHandler,
 	MobileAuthHandler *MobileAuthHandler,
 	JwtService *jwt.JwtService,
+	StorageService *storage.Service,
 
 	ErrorHandler func(c *fiber.Ctx, err error) error,
 ) *Handler {
@@ -42,6 +45,7 @@ func NewHandler(
 		UploadHandler:            UploadHandler,
 		MobileAuthHandler:        MobileAuthHandler,
 		JwtService:               JwtService,
+		StorageService:           StorageService,
 
 		ErrorHandler: ErrorHandler,
 	}

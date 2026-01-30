@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/lkgiovani/go-boilerplate/internal/delivery/dto"
@@ -100,6 +101,7 @@ func (h *Handler) SaveUser(c *fiber.Ctx) error {
 		Source:   "LOCAL",
 		Metadata: user.NewDefaultMetadata(),
 	}
+	newUser.Metadata.EmailVerified = true
 
 	if req.Password != nil {
 		newUser.Password = req.Password
@@ -218,18 +220,14 @@ func (h *Handler) AddImage(c *fiber.Ctx) error {
 		return errors.Errorf(errors.EBADREQUEST, "Invalid request body")
 	}
 
-	email := c.Locals("userEmail").(string)
-
-	existingUser, err := h.UserService.Repository.GetByEmail(c.Context(), email)
+	result, err := h.StorageService.GetPresignedUploadUrl(c.Context(), req.FileName, req.ContentType, req.ContentLength)
 	if err != nil {
 		return h.ErrorHandler(c, err)
 	}
 
-	_ = existingUser
-
 	return c.Status(fiber.StatusOK).JSON(dto.UploadResponseDTO{
-		UploadSignedURL: "https://example.com/upload",
-		PublicURL:       "https://example.com/public",
+		UploadSignedURL: result.SignedUrl,
+		PublicURL:       result.FinalUrl,
 	})
 }
 
@@ -299,9 +297,25 @@ func (h *Handler) DeleteUsersByIDs(c *fiber.Ctx) error {
 		return errors.Errorf(errors.EBADREQUEST, "IDs parameter is required")
 	}
 
-	// TODO: Parse IDs from query string
-	// Por enquanto, retorna erro
-	return errors.Errorf(errors.ENOTIMPLEMENTED, "Not implemented yet")
+	// Parse IDs from format "1,2,3" or similar
+	parts := strings.Split(idsParam, ",")
+	var ids []int64
+	for _, p := range parts {
+		id, err := strconv.ParseInt(strings.TrimSpace(p), 10, 64)
+		if err == nil {
+			ids = append(ids, id)
+		}
+	}
+
+	if len(ids) == 0 {
+		return errors.Errorf(errors.EBADREQUEST, "Valid IDs are required")
+	}
+
+	if err := h.UserService.Repository.DeleteByIDs(c.Context(), ids); err != nil {
+		return h.ErrorHandler(c, err)
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 func (h *Handler) FindAllUsers(c *fiber.Ctx) error {
