@@ -15,7 +15,9 @@ var RoutesModule = fx.Module("routes",
 		delivery.NewErrorHandler,
 		delivery.NewDocsHandler,
 		middleware.NewAuthMiddleware,
+		delivery.NewMobileAuthHandler,
 	),
+
 	fx.Invoke(
 		setupRoutes,
 	),
@@ -53,6 +55,11 @@ func setupRoutes(
 	auth.Post("/logout", handler.Logout)
 	auth.Post("/logout-all", authMiddleware.Authenticate, handler.LogoutAll) // Requires authentication
 	auth.Post("/signup", handler.Signup)
+
+	// Mobile Auth routes
+	mobileAuth := auth.Group("/mobile")
+	mobileAuth.Post("/oauth2/google", handler.MobileAuthHandler.AuthenticateWithGoogleMobile)
+	mobileAuth.Post("/refresh", handler.MobileAuthHandler.RefreshMobileToken)
 
 	// Public routes
 	publicUsers := v1.Group("/users/public")
