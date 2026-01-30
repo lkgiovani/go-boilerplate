@@ -12,9 +12,19 @@ import (
 var StorageModule = fx.Module("storage",
 	fx.Provide(
 		NewStorageProvider,
+		provideStorageService,
 		delivery.NewUploadHandler,
 	),
 )
+
+func provideStorageService(provider storage.StorageProvider, cfg *config.Config, log logger.Logger) *storage.Service {
+	return storage.NewService(
+		provider,
+		cfg.Storage.PresignedUrlDuration,
+		cfg.Storage.PublicBaseURL,
+		log,
+	)
+}
 
 func NewStorageProvider(cfg *config.Config, log logger.Logger) (storage.StorageProvider, error) {
 	var storageCfg any

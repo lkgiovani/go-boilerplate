@@ -1,19 +1,19 @@
 package delivery
 
 import (
-	"log/slog"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/lkgiovani/go-boilerplate/internal/delivery/dto"
 	"github.com/lkgiovani/go-boilerplate/internal/domain/storage"
+	"github.com/lkgiovani/go-boilerplate/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type UploadHandler struct {
 	storageService *storage.Service
-	logger         *slog.Logger
+	logger         logger.Logger
 }
 
-func NewUploadHandler(storageService *storage.Service, logger *slog.Logger) *UploadHandler {
+func NewUploadHandler(storageService *storage.Service, logger logger.Logger) *UploadHandler {
 	return &UploadHandler{
 		storageService: storageService,
 		logger:         logger,
@@ -31,7 +31,7 @@ func (h *UploadHandler) GetUploadUrl(c *fiber.Ctx) error {
 
 	result, err := h.storageService.GetPresignedUploadUrl(c.Context(), req.FileName, req.ContentType, req.ContentLength)
 	if err != nil {
-		h.logger.Error("Failed to generate presigned URL", slog.Any("error", err))
+		h.logger.Error("Failed to generate presigned URL", zap.Error(err))
 		return fiber.NewError(fiber.StatusInternalServerError, "Failed to generate upload URL")
 	}
 

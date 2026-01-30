@@ -15,7 +15,6 @@ import (
 var EmailModule = fx.Module(
 	"email",
 	fx.Provide(
-		provideEmailLogger,
 		provideEmailSender,
 		provideEmailVerificationRepository,
 		provideEmailVerificationService,
@@ -25,13 +24,6 @@ var EmailModule = fx.Module(
 		delivery.NewPasswordRecoveryHandler,
 	),
 )
-
-// ... (skipping lines)
-
-// provideEmailLogger provides Logger for email components
-func provideEmailLogger(logger logger.Logger) logger.Logger {
-	return logger
-}
 
 // provideEmailSender provides the Email Sender based on configuration
 func provideEmailSender(cfg *config.Config, logger logger.Logger) (email.EmailSender, error) {
