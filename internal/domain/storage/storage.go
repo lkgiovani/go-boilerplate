@@ -6,6 +6,26 @@ import (
 	"time"
 )
 
+type FileReference struct {
+	ID               int64     `gorm:"primaryKey;autoIncrement"`
+	UserID           int64     `gorm:"not null"`
+	OriginalFilename string    `gorm:"not null"`
+	StorageKey       string    `gorm:"uniqueIndex;not null"`
+	ContentType      string    `gorm:"not null"`
+	FileSize         int64     `gorm:"not null"`
+	FileType         string    `gorm:"not null"` // e.g., PROFILE_IMAGE, DOCUMENT
+	StorageProvider  string    `gorm:"not null;default:'S3'"`
+	CreatedAt        time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
+}
+
+type FileRepository interface {
+	Save(ctx context.Context, file *FileReference) error
+	GetByID(ctx context.Context, id int64) (*FileReference, error)
+	GetByStorageKey(ctx context.Context, key string) (*FileReference, error)
+	Delete(ctx context.Context, id int64) error
+	FindByUserID(ctx context.Context, userID int64) ([]FileReference, error)
+}
+
 // StorageProvider is the interface for file storage operations
 type StorageProvider interface {
 	Upload(ctx context.Context, key string, reader io.Reader, contentType string, size int64) (string, error)
