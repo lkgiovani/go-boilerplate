@@ -28,6 +28,8 @@ var EmailModule = fx.Module(
 	),
 )
 
+// ... (skipping lines)
+
 // provideEmailLogger provides Logger for email components
 func provideEmailLogger() *slog.Logger {
 	return slog.New(slog.NewJSONHandler(os.Stdout, nil))

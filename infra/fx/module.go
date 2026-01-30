@@ -9,6 +9,7 @@ var AppModule = fx.Options(
 	infraModule,
 	DomainModule,
 	EmailModule,
+	StorageModule,
 	RoutesModule,
 	ServerModule,
 )

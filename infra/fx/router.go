@@ -59,6 +59,11 @@ func setupRoutes(
 	publicUsers.Post("/signup", handler.SignupUser)
 	publicUsers.Post("/resend-verification", handler.ResendVerification)
 
+	// Upload routes
+	uploads := v1.Group("/uploads")
+	uploads.Use(authMiddleware.Authenticate)
+	uploads.Post("/images", handler.UploadHandler.GetUploadUrl)
+
 	// Email Verification routes
 	emailVer := v1.Group("/email-verification")
 	emailVer.Post("/send", authMiddleware.Authenticate, handler.EmailVerificationHandler.SendVerificationEmail)

@@ -20,6 +20,24 @@ type Config struct {
 	JWT      JWTConfig
 	Admin    AdminConfig
 	Email    EmailConfig
+	Storage  StorageConfig
+}
+
+type StorageConfig struct {
+	Provider             string
+	LocalDir             string
+	PresignedUrlDuration int
+	S3AccessKey          string
+	S3SecretKey          string
+	S3Region             string
+	S3BucketName         string
+	S3Endpoint           string
+	R2AccountID          string
+	R2AccessKey          string
+	R2SecretKey          string
+	R2BucketName         string
+	R2PublicURL          string
+	PublicBaseURL        string
 }
 
 type EmailConfig struct {
@@ -238,6 +256,44 @@ func loadEmailConfig() EmailConfig {
 	}
 }
 
+func loadStorageConfig() StorageConfig {
+	provider, _ := utils.GetString("STORAGE_PROVIDER")
+	localDir, _ := utils.GetString("STORAGE_LOCAL_DIR")
+	duration, _ := utils.GetInt("STORAGE_PRESIGNED_URL_DURATION")
+	s3AccessKey, _ := utils.GetString("AWS_S3_ACCESS_KEY_ID")
+	s3SecretKey, _ := utils.GetString("AWS_S3_SECRET_ACCESS_KEY")
+	s3Region, _ := utils.GetString("AWS_S3_REGION")
+	s3BucketName, _ := utils.GetString("AWS_S3_BUCKET_NAME")
+	s3Endpoint, _ := utils.GetString("AWS_S3_ENDPOINT")
+	r2AccountID, _ := utils.GetString("R2_ACCOUNT_ID")
+	r2AccessKey, _ := utils.GetString("R2_ACCESS_KEY_ID")
+	r2SecretKey, _ := utils.GetString("R2_SECRET_ACCESS_KEY")
+	r2BucketName, _ := utils.GetString("R2_BUCKET_NAME")
+	r2PublicURL, _ := utils.GetString("R2_PUBLIC_URL")
+	publicBaseURL, _ := utils.GetString("STORAGE_PUBLIC_BASE_URL")
+
+	if duration == 0 {
+		duration = 60
+	}
+
+	return StorageConfig{
+		Provider:             provider,
+		LocalDir:             localDir,
+		PresignedUrlDuration: duration,
+		S3AccessKey:          s3AccessKey,
+		S3SecretKey:          s3SecretKey,
+		S3Region:             s3Region,
+		S3BucketName:         s3BucketName,
+		S3Endpoint:           s3Endpoint,
+		R2AccountID:          r2AccountID,
+		R2AccessKey:          r2AccessKey,
+		R2SecretKey:          r2SecretKey,
+		R2BucketName:         r2BucketName,
+		R2PublicURL:          r2PublicURL,
+		PublicBaseURL:        publicBaseURL,
+	}
+}
+
 func LoadConfig() *Config {
 	LoadEnvironment()
 	return &Config{
@@ -246,5 +302,6 @@ func LoadConfig() *Config {
 		JWT:      loadJWTConfig(),
 		Admin:    loadAdminConfig(),
 		Email:    loadEmailConfig(),
+		Storage:  loadStorageConfig(),
 	}
 }
