@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/joho/godotenv"
 	go_boilerplate "github.com/lkgiovani/go-boilerplate"
@@ -15,13 +14,18 @@ import (
 var embeddedEnv = go_boilerplate.EnvFile
 
 type Config struct {
-	Database DatabaseConfig
-	Server   ServerConfig
-	JWT      JWTConfig
-	Admin    AdminConfig
-	Email    EmailConfig
-	Storage  StorageConfig
-	OAuth2   OAuth2Config
+	Database          DatabaseConfig
+	Server            ServerConfig
+	JWT               JWTConfig
+	Admin             AdminConfig
+	Email             EmailConfig
+	Storage           StorageConfig
+	OAuth2            OAuth2Config
+	Redis             RedisConfig
+	EmailVerification EmailVerificationConfig
+	PasswordReset     PasswordResetConfig
+	RateLimit         RateLimitConfig
+	Security          SecurityConfig
 }
 
 type StorageConfig struct {
@@ -58,11 +62,16 @@ type EmailConfig struct {
 }
 
 type DatabaseConfig struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	DBName   string
+	Host        string
+	Port        int
+	User        string
+	Password    string
+	DBName      string
+	MaxPoolSize int
+	MinIdle     int
+	ConnTimeout int
+	IdleTimeout int
+	MaxLifetime int
 }
 
 type ServerConfig struct {
@@ -70,14 +79,18 @@ type ServerConfig struct {
 	LogLevel       string
 	Mode           string
 	AllowedOrigins string
+	SwaggerEnabled bool
 }
 
 type JWTConfig struct {
-	SecretKey    string
-	Issuer       string
-	Audience     string
-	CookieDomain string
-	ExpiresIn    time.Duration
+	SecretKey                string
+	Issuer                   string
+	Audience                 string
+	CookieDomain             string
+	ExpirationMs             int
+	AccessTokenCookieMaxAge  int
+	RefreshTokenCookieMaxAge int
+	RefreshTokenExpiration   int
 }
 
 type AdminConfig struct {
@@ -88,6 +101,54 @@ type AdminConfig struct {
 type OAuth2Config struct {
 	GoogleAndroidClientID string
 	GoogleIosClientID     string
+	SuccessRedirectUrl    string
+	FailureRedirectUrl    string
+	StateTokenExpiration  int
+}
+
+type RedisConfig struct {
+	Host      string
+	Port      int
+	Password  string
+	Timeout   int
+	MaxActive int
+	MaxIdle   int
+	MinIdle   int
+}
+
+type EmailVerificationConfig struct {
+	TokenExpirationHours  int
+	ResendCooldownMinutes int
+}
+
+type PasswordResetConfig struct {
+	TokenExpirationHours  int
+	ResendCooldownMinutes int
+}
+
+type RateLimitConfig struct {
+	Enabled      bool
+	GlobalLimit  int
+	WhitelistIPs []string
+}
+
+type SuspiciousConfig struct {
+	WindowMinutes         int
+	MaxRequestsPerWindow  int
+	MassCreationThreshold int
+}
+
+type AutoBlockConfig struct {
+	CriticalCount      int
+	HighCount          int
+	TotalCount         int
+	TimeWindowHours    int
+	BlockDurationHours int
+}
+
+type SecurityConfig struct {
+	Suspicious SuspiciousConfig
+	AutoBlock  AutoBlockConfig
 }
 
 func LoadEnvironment() {
@@ -130,15 +191,14 @@ func loadServerConfig() ServerConfig {
 	}
 
 	allowedOrigins, _ := utils.GetString("ALLOWED_ORIGINS")
-	if allowedOrigins == "" {
-		allowedOrigins = ""
-	}
+	swaggerEnabled, _ := utils.GetBool("SWAGGER_ENABLED")
 
 	return ServerConfig{
 		Port:           port,
 		LogLevel:       logLevel,
 		Mode:           mode,
 		AllowedOrigins: allowedOrigins,
+		SwaggerEnabled: swaggerEnabled,
 	}
 }
 
@@ -168,12 +228,42 @@ func loadDatabaseConfig() DatabaseConfig {
 		log.Fatalf("Failed to get DB_NAME from environment: %v", err)
 	}
 
+	maxPoolSize, _ := utils.GetInt("DB_POOL_SIZE")
+	if maxPoolSize == 0 {
+		maxPoolSize = 20
+	}
+
+	minIdle, _ := utils.GetInt("DB_POOL_MIN_IDLE")
+	if minIdle == 0 {
+		minIdle = 5
+	}
+
+	connTimeout, _ := utils.GetInt("DB_CONNECTION_TIMEOUT")
+	if connTimeout == 0 {
+		connTimeout = 30000
+	}
+
+	idleTimeout, _ := utils.GetInt("DB_IDLE_TIMEOUT")
+	if idleTimeout == 0 {
+		idleTimeout = 600000
+	}
+
+	maxLifetime, _ := utils.GetInt("DB_MAX_LIFETIME")
+	if maxLifetime == 0 {
+		maxLifetime = 1800000
+	}
+
 	return DatabaseConfig{
-		Host:     host,
-		Port:     port,
-		User:     user,
-		Password: password,
-		DBName:   dbName,
+		Host:        host,
+		Port:        port,
+		User:        user,
+		Password:    password,
+		DBName:      dbName,
+		MaxPoolSize: maxPoolSize,
+		MinIdle:     minIdle,
+		ConnTimeout: connTimeout,
+		IdleTimeout: idleTimeout,
+		MaxLifetime: maxLifetime,
 	}
 }
 
@@ -188,11 +278,6 @@ func loadJWTConfig() JWTConfig {
 		log.Fatalf("Failed to get JWT_ISSUER from environment: %v", err)
 	}
 
-	expiresIn, err := utils.GetDuration("JWT_EXPIRES_IN")
-	if err != nil {
-		log.Fatalf("Failed to get JWT_EXPIRES_IN from environment: %v", err)
-	}
-
 	audience, _ := utils.GetString("JWT_AUDIENCE")
 	if audience == "" {
 		audience = "boilerplate-api"
@@ -200,12 +285,35 @@ func loadJWTConfig() JWTConfig {
 
 	cookieDomain, _ := utils.GetString("COOKIE_DOMAIN")
 
+	expirationMs, _ := utils.GetInt("JWT_EXPIRATION_MS")
+	if expirationMs == 0 {
+		expirationMs = 1800000
+	}
+
+	accessTokenCookieMaxAge, _ := utils.GetInt("ACCESS_TOKEN_COOKIE_MAX_AGE")
+	if accessTokenCookieMaxAge == 0 {
+		accessTokenCookieMaxAge = 1800
+	}
+
+	refreshTokenCookieMaxAge, _ := utils.GetInt("REFRESH_TOKEN_COOKIE_MAX_AGE")
+	if refreshTokenCookieMaxAge == 0 {
+		refreshTokenCookieMaxAge = 864000
+	}
+
+	refreshTokenExpiration, _ := utils.GetInt("REFRESH_TOKEN_EXPIRATION_DAYS")
+	if refreshTokenExpiration == 0 {
+		refreshTokenExpiration = 10
+	}
+
 	return JWTConfig{
-		SecretKey:    secretKey,
-		Issuer:       issuer,
-		Audience:     audience,
-		CookieDomain: cookieDomain,
-		ExpiresIn:    expiresIn,
+		SecretKey:                secretKey,
+		Issuer:                   issuer,
+		Audience:                 audience,
+		CookieDomain:             cookieDomain,
+		ExpirationMs:             expirationMs,
+		AccessTokenCookieMaxAge:  accessTokenCookieMaxAge,
+		RefreshTokenCookieMaxAge: refreshTokenCookieMaxAge,
+		RefreshTokenExpiration:   refreshTokenExpiration,
 	}
 }
 
@@ -309,21 +417,167 @@ func loadOAuth2Config() OAuth2Config {
 		log.Fatalf("Failed to get GOOGLE_IOS_CLIENT_ID from environment: %v", err)
 	}
 
+	successRedirect, _ := utils.GetString("OAUTH2_SUCCESS_REDIRECT")
+	failureRedirect, _ := utils.GetString("OAUTH2_FAILURE_REDIRECT")
+	stateTokenExpiration, _ := utils.GetInt("OAUTH2_STATE_TOKEN_EXPIRATION_MINUTES")
+	if stateTokenExpiration == 0 {
+		stateTokenExpiration = 10
+	}
+
 	return OAuth2Config{
 		GoogleAndroidClientID: androidID,
 		GoogleIosClientID:     iosID,
+		SuccessRedirectUrl:    successRedirect,
+		FailureRedirectUrl:    failureRedirect,
+		StateTokenExpiration:  stateTokenExpiration,
+	}
+}
+
+func loadRedisConfig() RedisConfig {
+	host, _ := utils.GetString("REDIS_HOST")
+	port, _ := utils.GetInt("REDIS_PORT")
+	if port == 0 {
+		port = 6379
+	}
+	password, _ := utils.GetString("REDIS_PASSWORD")
+	timeout, _ := utils.GetInt("REDIS_TIMEOUT")
+	if timeout == 0 {
+		timeout = 2000
+	}
+	maxActive, _ := utils.GetInt("REDIS_POOL_MAX_ACTIVE")
+	if maxActive == 0 {
+		maxActive = 20
+	}
+	maxIdle, _ := utils.GetInt("REDIS_POOL_MAX_IDLE")
+	if maxIdle == 0 {
+		maxIdle = 10
+	}
+	minIdle, _ := utils.GetInt("REDIS_POOL_MIN_IDLE")
+	if minIdle == 0 {
+		minIdle = 5
+	}
+
+	return RedisConfig{
+		Host:      host,
+		Port:      port,
+		Password:  password,
+		Timeout:   timeout,
+		MaxActive: maxActive,
+		MaxIdle:   maxIdle,
+		MinIdle:   minIdle,
+	}
+}
+
+func loadEmailVerificationConfig() EmailVerificationConfig {
+	expiration, _ := utils.GetInt("EMAIL_VERIFICATION_EXPIRATION_HOURS")
+	if expiration == 0 {
+		expiration = 24
+	}
+	cooldown, _ := utils.GetInt("EMAIL_VERIFICATION_RESEND_COOLDOWN")
+	if cooldown == 0 {
+		cooldown = 2
+	}
+
+	return EmailVerificationConfig{
+		TokenExpirationHours:  expiration,
+		ResendCooldownMinutes: cooldown,
+	}
+}
+
+func loadPasswordResetConfig() PasswordResetConfig {
+	expiration, _ := utils.GetInt("PASSWORD_RESET_EXPIRATION_HOURS")
+	if expiration == 0 {
+		expiration = 1
+	}
+	cooldown, _ := utils.GetInt("PASSWORD_RESET_RESEND_COOLDOWN")
+	if cooldown == 0 {
+		cooldown = 2
+	}
+
+	return PasswordResetConfig{
+		TokenExpirationHours:  expiration,
+		ResendCooldownMinutes: cooldown,
+	}
+}
+
+func loadRateLimitConfig() RateLimitConfig {
+	enabled, _ := utils.GetBool("RATE_LIMIT_ENABLED")
+	globalLimit, _ := utils.GetInt("RATE_LIMIT_GLOBAL")
+	if globalLimit == 0 {
+		globalLimit = 200
+	}
+
+	return RateLimitConfig{
+		Enabled:     enabled,
+		GlobalLimit: globalLimit,
+	}
+}
+
+func loadSecurityConfig() SecurityConfig {
+	suspiciousWindow, _ := utils.GetInt("SECURITY_SUSPICIOUS_WINDOW_MINUTES")
+	if suspiciousWindow == 0 {
+		suspiciousWindow = 5
+	}
+	suspiciousMaxRequests, _ := utils.GetInt("SECURITY_SUSPICIOUS_MAX_REQUESTS")
+	if suspiciousMaxRequests == 0 {
+		suspiciousMaxRequests = 80
+	}
+	suspiciousMassCreation, _ := utils.GetInt("SECURITY_SUSPICIOUS_MASS_CREATION_THRESHOLD")
+	if suspiciousMassCreation == 0 {
+		suspiciousMassCreation = 8
+	}
+
+	criticalCount, _ := utils.GetInt("SECURITY_AUTO_BLOCK_CRITICAL_COUNT")
+	if criticalCount == 0 {
+		criticalCount = 2
+	}
+	highCount, _ := utils.GetInt("SECURITY_AUTO_BLOCK_HIGH_COUNT")
+	if highCount == 0 {
+		highCount = 8
+	}
+	totalCount, _ := utils.GetInt("SECURITY_AUTO_BLOCK_TOTAL_COUNT")
+	if totalCount == 0 {
+		totalCount = 15
+	}
+	timeWindow, _ := utils.GetInt("SECURITY_AUTO_BLOCK_TIME_WINDOW_HOURS")
+	if timeWindow == 0 {
+		timeWindow = 24
+	}
+	blockDuration, _ := utils.GetInt("SECURITY_AUTO_BLOCK_BLOCK_DURATION_HOURS")
+	if blockDuration == 0 {
+		blockDuration = 168
+	}
+
+	return SecurityConfig{
+		Suspicious: SuspiciousConfig{
+			WindowMinutes:         suspiciousWindow,
+			MaxRequestsPerWindow:  suspiciousMaxRequests,
+			MassCreationThreshold: suspiciousMassCreation,
+		},
+		AutoBlock: AutoBlockConfig{
+			CriticalCount:      criticalCount,
+			HighCount:          highCount,
+			TotalCount:         totalCount,
+			TimeWindowHours:    timeWindow,
+			BlockDurationHours: blockDuration,
+		},
 	}
 }
 
 func LoadConfig() *Config {
 	LoadEnvironment()
 	return &Config{
-		Database: loadDatabaseConfig(),
-		Server:   loadServerConfig(),
-		JWT:      loadJWTConfig(),
-		Admin:    loadAdminConfig(),
-		Email:    loadEmailConfig(),
-		Storage:  loadStorageConfig(),
-		OAuth2:   loadOAuth2Config(),
+		Database:          loadDatabaseConfig(),
+		Server:            loadServerConfig(),
+		JWT:               loadJWTConfig(),
+		Admin:             loadAdminConfig(),
+		Email:             loadEmailConfig(),
+		Storage:           loadStorageConfig(),
+		OAuth2:            loadOAuth2Config(),
+		Redis:             loadRedisConfig(),
+		EmailVerification: loadEmailVerificationConfig(),
+		PasswordReset:     loadPasswordResetConfig(),
+		RateLimit:         loadRateLimitConfig(),
+		Security:          loadSecurityConfig(),
 	}
 }

@@ -71,6 +71,8 @@ func provideEmailVerificationService(
 		userRepo,
 		sender,
 		cfg.Email.FrontendURL,
+		cfg.EmailVerification.TokenExpirationHours,
+		cfg.EmailVerification.ResendCooldownMinutes,
 		logger,
 	)
 }
@@ -91,6 +93,8 @@ func providePasswordRecoveryService(
 		userRepo,
 		sender,
 		cfg.Email.FrontendURL,
+		cfg.PasswordReset.TokenExpirationHours,
+		cfg.PasswordReset.ResendCooldownMinutes,
 		logger,
 	)
 }

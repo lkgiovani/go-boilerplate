@@ -2,6 +2,7 @@ package fx
 
 import (
 	"context"
+	"time"
 
 	"github.com/lkgiovani/go-boilerplate/infra/config"
 	"github.com/lkgiovani/go-boilerplate/infra/database"
@@ -29,6 +30,15 @@ func NewDatabase(lc fx.Lifecycle, cfg *config.Config, log logger.Logger) (*gorm.
 	}
 
 	db := database.GetDB()
+
+	// Configure connection pool
+	sqlDB, err := db.DB()
+	if err == nil {
+		sqlDB.SetMaxIdleConns(cfg.Database.MinIdle)
+		sqlDB.SetMaxOpenConns(cfg.Database.MaxPoolSize)
+		sqlDB.SetConnMaxLifetime(time.Duration(cfg.Database.MaxLifetime) * time.Millisecond)
+		sqlDB.SetConnMaxIdleTime(time.Duration(cfg.Database.IdleTimeout) * time.Millisecond)
+	}
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {

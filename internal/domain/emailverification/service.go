@@ -16,15 +16,13 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	TokenExpirationHours = 24
-)
-
 type Service struct {
 	tokenRepo   Repository
 	userRepo    user.UserService
 	emailSender email.EmailSender
 	frontendURL string
+	expiration  int
+	cooldown    int
 	logger      logger.Logger
 }
 
@@ -33,6 +31,8 @@ func NewService(
 	userRepo user.UserService,
 	emailSender email.EmailSender,
 	frontendURL string,
+	expiration int,
+	cooldown int,
 	logger logger.Logger,
 ) *Service {
 	return &Service{
@@ -40,6 +40,8 @@ func NewService(
 		userRepo:    userRepo,
 		emailSender: emailSender,
 		frontendURL: frontendURL,
+		expiration:  expiration,
+		cooldown:    cooldown,
 		logger:      logger,
 	}
 }
@@ -61,7 +63,7 @@ func (s *Service) CreateAndSendVerificationToken(ctx context.Context, u *user.Us
 		UserID:    u.ID,
 		Email:     u.Email,
 		Token:     tokenCode,
-		ExpiresAt: utils.Now().Add(TokenExpirationHours * time.Hour),
+		ExpiresAt: utils.Now().Add(time.Duration(s.expiration) * time.Hour),
 		Used:      false,
 	}
 
@@ -169,10 +171,10 @@ func (s *Service) sendVerificationEmail(ctx context.Context, toEmail, tokenCode 
 			<a href="%s">Verificar Email</a>
 			<p>Ou copie e cole este link no seu navegador:</p>
 			<p>%s</p>
-			<p>Este link expira em 24 horas.</p>
+			<p>Este link expira em %d horas.</p>
 		</body>
 		</html>
-	`, verificationURL, verificationURL)
+	`, verificationURL, verificationURL, s.expiration)
 
 	return s.emailSender.SendEmail(ctx, toEmail, subject, body)
 }

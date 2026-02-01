@@ -34,18 +34,20 @@ type CustomClaims struct {
 }
 
 type JwtService struct {
-	secretKey    string
-	issuer       string
-	audience     string
-	cookieDomain string
-	tokenTTL     int64
-	parser       *jwt.Parser
-	userService  *user.Service
+	secretKey                string
+	issuer                   string
+	audience                 string
+	cookieDomain             string
+	tokenTTL                 int64
+	accessTokenCookieMaxAge  int
+	refreshTokenCookieMaxAge int
+	parser                   *jwt.Parser
+	userService              *user.Service
 }
 
 func NewJwtService(settings config.JWTConfig, userService *user.Service) (*JwtService, error) {
-	if settings.ExpiresIn <= 0 {
-		return nil, errors.New("JWT_EXPIRES_IN inválido")
+	if settings.ExpirationMs <= 0 {
+		return nil, errors.New("JWT_EXPIRATION_MS inválido")
 	}
 
 	audience := settings.Audience
@@ -55,13 +57,15 @@ func NewJwtService(settings config.JWTConfig, userService *user.Service) (*JwtSe
 
 	parser := &jwt.Parser{ValidMethods: []string{jwt.SigningMethodHS256.Name}}
 	return &JwtService{
-		secretKey:    settings.SecretKey,
-		issuer:       settings.Issuer,
-		audience:     audience,
-		cookieDomain: settings.CookieDomain,
-		tokenTTL:     int64(settings.ExpiresIn.Seconds()),
-		parser:       parser,
-		userService:  userService,
+		secretKey:                settings.SecretKey,
+		issuer:                   settings.Issuer,
+		audience:                 audience,
+		cookieDomain:             settings.CookieDomain,
+		tokenTTL:                 int64(settings.ExpirationMs / 1000),
+		accessTokenCookieMaxAge:  settings.AccessTokenCookieMaxAge,
+		refreshTokenCookieMaxAge: settings.RefreshTokenCookieMaxAge,
+		parser:                   parser,
+		userService:              userService,
 	}, nil
 }
 
@@ -184,7 +188,7 @@ func (s *JwtService) GenerateCookies(u *user.User) (string, string, *CustomClaim
 			Name:     AccessTokenCookieName,
 			Value:    accessToken,
 			Path:     "/",
-			MaxAge:   int(s.tokenTTL),
+			MaxAge:   s.accessTokenCookieMaxAge,
 			Secure:   isSecure,
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
@@ -193,7 +197,7 @@ func (s *JwtService) GenerateCookies(u *user.User) (string, string, *CustomClaim
 			Name:     RefreshTokenCookieName,
 			Value:    refreshToken,
 			Path:     "/v1/auth/refresh",
-			MaxAge:   int(s.tokenTTL * 7),
+			MaxAge:   s.refreshTokenCookieMaxAge,
 			Secure:   isSecure,
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
